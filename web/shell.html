@@ -16,6 +16,9 @@
 body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
 main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
 h1 { font-size: 22px; margin: 0 0 4px; }
+.title { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.title a { color: var(--muted); }
+.title a:hover { color: var(--fg); }
 p { margin: 0 0 12px; color: var(--muted); }
 .warn { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: 10px 14px; margin: 12px 0 20px; }
 .layout { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
@@ -40,7 +43,10 @@ video { display: none; }
 </head>
 <body>
 <main>
+<div class="title">
 <h1>jitsu-in-pico in the browser</h1>
+<a href="https://github.com/habakan/jitsu-in-pico" target="_blank" rel="noopener noreferrer">GitHub repository</a>
+</div>
 <p>The Pico 2 firmware's <code>main.c</code>, review screens and signing core, with <code>parser.wasm</code> running on
 the same WAMR interpreter, compiled to WebAssembly. Only the LCD, buttons and camera are replaced.</p>
 <div class="warn">Demo only. Use the test seed. Never scan a real SeedQR here: a browser tab is not a signing device.</div>
