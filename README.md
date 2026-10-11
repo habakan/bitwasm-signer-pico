@@ -15,7 +15,7 @@ cross-platform examples live in jitsu-in.
 
 ![Firmware stack: Pico 2 hardware, native firmware, WAMR, and jitsu-in modules](docs/firmware-stack.svg)
 
-The [browser viewer](https://github.com/habakan/jitsu-in/tree/main/examples/viewer) is maintained in jitsu-in.
+The separate [PSBT browser viewer](https://github.com/habakan/jitsu-in/tree/main/examples/viewer) is maintained in jitsu-in.
 
 The device runs `parser.wasm` from jitsu-in. Its `Parser hash` screen shows the module's SHA-256;
 `make check-repro` rebuilds the pinned artifacts and compares them with the recorded hashes.
@@ -80,6 +80,21 @@ make run TESTNET=1 SECONDS=180    # signet
 
 Only a build with `TEST_SEED=1` can select the BIP39 test vector seed (the default is 0). Never put funds on it.
 Known limitations and operational constraints are in [docs/limitations.md](docs/limitations.md).
+
+### In the browser
+
+Try the [live firmware demo](https://habakan.github.io/jitsu-in-pico/). It uses a test seed; never scan a real
+SeedQR or use real funds. See [web/README.md](web/README.md) for the controls, implementation, and local build.
+
+[![Browser demo showing the firmware menu, controls, and test-seed warning](docs/web-demo.png)](https://habakan.github.io/jitsu-in-pico/)
+
+```sh
+make web                          # needs Emscripten; writes build/web/signer.html
+```
+
+The same `main.c`, review screens, signing core and `parser.wasm` on WAMR, compiled to WebAssembly. Only
+the LCD, buttons and camera are replaced (`web/hal.c`). It is built with `TEST_SEED=1` and is a demo, not
+a signing device: never scan a real SeedQR into it.
 
 ## Check it yourself
 
