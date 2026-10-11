@@ -39,6 +39,13 @@ transactions, and known limitations are listed in [docs/limitations.md](docs/lim
 
 Found a security problem? [SECURITY.md](SECURITY.md) — **not** a public issue.
 
+## Browser demo
+
+Try the [live firmware demo](https://habakan.github.io/jitsu-in-pico/). It uses a test seed; never scan a real
+SeedQR or use real funds. See [web/README.md](web/README.md) for the controls and implementation.
+
+[![Browser demo showing the firmware menu, controls, and test-seed warning](docs/web-demo.png)](https://habakan.github.io/jitsu-in-pico/)
+
 ## The Pico 2 implementation
 
 Read a seed from a SeedQR with the camera, receive a PSBT as an animated QR (UR), show it for review,
@@ -81,12 +88,7 @@ make run TESTNET=1 SECONDS=180    # signet
 Only a build with `TEST_SEED=1` can select the BIP39 test vector seed (the default is 0). Never put funds on it.
 Known limitations and operational constraints are in [docs/limitations.md](docs/limitations.md).
 
-### In the browser
-
-Try the [live firmware demo](https://habakan.github.io/jitsu-in-pico/). It uses a test seed; never scan a real
-SeedQR or use real funds. See [web/README.md](web/README.md) for the controls, implementation, and local build.
-
-[![Browser demo showing the firmware menu, controls, and test-seed warning](docs/web-demo.png)](https://habakan.github.io/jitsu-in-pico/)
+### Build the browser demo
 
 ```sh
 make web                          # needs Emscripten; writes build/web/signer.html

@@ -33,6 +33,12 @@ signet で署名から送信まで一巡しました。ここに載せた数値�
 | モジュールの仕様と他環境での利用 | [jitsu-in](https://github.com/habakan/jitsu-in) |
 | parser の ABI とホスト実装例 | [jitsu-in parser](https://github.com/habakan/jitsu-in/tree/main/parser)（英語） |
 
+## ブラウザデモ
+
+[公開デモページ](https://habakan.github.io/jitsu-in-pico/)から試せます。テストシードを使うデモなので、本物の SeedQR を読み込ませず、実資金を扱わないでください。操作方法と実装の説明は [web/README.md](../../web/README.md)（英語）をご覧ください。
+
+[![ブラウザ上のファームウェアメニュー、操作パッド、テストシードの注意書きを表示したデモ画面](../web-demo.png)](https://habakan.github.io/jitsu-in-pico/)
+
 ## Pico 2 の実装
 
 カメラで SeedQR を読み、アニメーション QR（UR）で PSBT を受け取ります。画面で内容を確認して署名し、
@@ -71,11 +77,7 @@ make run TESTNET=1 SECONDS=180    # signet 用
 `TEST_SEED=1` でビルドした場合だけ BIP39 のテストベクタを選べます（既定は 0）。このビルドでは資金を扱わないでください。
 実機の運用上の制約は[制約一覧](limitations.md)をご覧ください。
 
-### ブラウザ
-
-[公開デモページ](https://habakan.github.io/jitsu-in-pico/)から試せます。テストシードを使うデモなので、本物の SeedQR を読み込ませず、実資金を扱わないでください。操作方法と実装の説明は [web/README.md](../../web/README.md)（英語）をご覧ください。
-
-[![ブラウザ上のファームウェアメニュー、操作パッド、テストシードの注意書きを表示したデモ画面](../web-demo.png)](https://habakan.github.io/jitsu-in-pico/)
+### ブラウザ版のビルド
 
 ```sh
 make web                          # Emscripten が必要。build/web/signer.html を出力
