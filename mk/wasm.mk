@@ -73,5 +73,5 @@ build/parser.aot: build/parser.wasm $(WAMRC)
 build/parser_wasm.h: $(PARSER_BIN) build/parser.wasm checksums.txt
 	@grep ' build/parser.wasm$$' checksums.txt > build/parser.wasm.sha256
 	@(shasum -a 256 -c build/parser.wasm.sha256 2>/dev/null || sha256sum -c build/parser.wasm.sha256) \
-	  || { echo "build/parser.wasm が checksums.txt と一致しない。make check-repro で作り直す"; exit 1; }
+	  || { echo "build/parser.wasm does not match checksums.txt; rebuild it with make check-repro"; exit 1; }
 	xxd -i -n parser_wasm $< | sed 's/^unsigned char/const unsigned char/' > $@
