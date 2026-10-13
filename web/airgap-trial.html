@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>仮想AirGap取引 | jitsu-in-pico</title>
+<title>仮想AirGap取引 | bitwasm-signer-pico</title>
 <style>
 :root { color-scheme: light dark; --bg:#f4f2ee; --fg:#1d1c1a; --muted:#6b6760; --panel:#fff; --line:#d9d5cd; --accent:#3d3b38; --accent-fg:#f4f2ee; --warn:#fdecc8; }
 @media (prefers-color-scheme: dark) { :root { --bg:#161514; --fg:#ece9e3; --muted:#9c978e; --panel:#201f1d; --line:#34322f; --accent:#3a3835; --accent-fg:#f4f2ee; --warn:#3b2c0c; } }
@@ -170,10 +170,10 @@ button:disabled { opacity:.45; cursor:default; }
   <div class="onboarding-action"><strong>次にすること</strong><p id="onboarding-instruction" aria-live="polite">HWWの方向キーで「Scan SeedQR」を選び、OKを押します。HWWのレンズを上の紙SeedQRに向けてください。</p></div>
 </section>
 <div class="flow">
-  <div class="wallet-laptop" id="wallet-laptop" role="group" aria-label="Jitsu WalletのノートPC">
+  <div class="wallet-laptop" id="wallet-laptop" role="group" aria-label="Bitwasm WalletのノートPC">
   <span class="wallet-camera-lens" id="wallet-camera-lens" aria-hidden="true"></span>
   <form id="form" class="wallet-app">
-    <div class="titlebar" title="フレームをドラッグしてWalletを移動"><span class="window-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>Jitsu Wallet · Send (watch only)</span><span class="network-badge">SIGNET</span></div>
+    <div class="titlebar" title="フレームをドラッグしてWalletを移動"><span class="window-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>Bitwasm Wallet · Send (watch only)</span><span class="network-badge">SIGNET</span></div>
     <div class="wallet-body">
       <div class="wallet-main">
         <section class="wallet-screen" id="wallet-screen-address">
@@ -237,11 +237,11 @@ button:disabled { opacity:.45; cursor:default; }
         </section>
       </div>
     </div>
-    <div class="wallet-statusbar">Jitsu Wallet · Browser demo · Public test seed</div>
+    <div class="wallet-statusbar">Bitwasm Wallet · Browser demo · Public test seed</div>
   </form>
   </div>
-  <section class="hww-window" id="hww-window" aria-label="jitsu-in-pico hardware wallet">
-    <iframe id="signer" src="signer.html" title="jitsu-in-pico hardware wallet"></iframe>
+  <section class="hww-window" id="hww-window" aria-label="bitwasm-signer-pico hardware wallet">
+    <iframe id="signer" src="signer.html" title="bitwasm-signer-pico hardware wallet"></iframe>
   </section>
   <div id="wallet-camera-frame" aria-hidden="true"></div>
 </div>
@@ -364,7 +364,7 @@ const translationPairs = [
   ["署名済み取引の送金先・金額・手数料をもう一度確認してください。問題がなければ「signetへブロードキャスト」を押します。", "Review the signed transaction’s recipient, amount, and fee. If everything is correct, choose “Broadcast to Signet”."],
   ["Signetへ送信しています。ネットワークの応答を待ってください。", "Broadcasting to Signet. Waiting for a network response."],
   ["取引をSignetに送信しました。下のTXIDリンクからブロックエクスプローラーで確認できます。", "The transaction was sent to Signet. Open the TXID link below to view it in the block explorer."],
-  ["仮想AirGap取引 | jitsu-in-pico", "Virtual AirGap transaction | jitsu-in-pico"],
+  ["仮想AirGap取引 | bitwasm-signer-pico", "Virtual AirGap transaction | bitwasm-signer-pico"],
   ["画面上で仮想AirGap取引を体験", "Try a virtual AirGap transaction on screen"],
   ["画面上のウォレットと署名器を操作し、PSBTの作成・署名からSignetへのテスト送金まで体験できます。", "Use the on-screen wallet and signer to create and sign a PSBT, then send a test transaction to Signet."],
   ["このページはsignet専用です。通常は公開デモシードを使い、必要なら別のテスト用SeedQRを設定できます。実際の価値があるコインや秘密鍵は絶対に使わないでください。UTXO照会とブロードキャストにはmempool.space signet APIを使います。", "This page is for Signet only. It uses the public demo seed by default, and you can select another test SeedQR if needed. Never use real coins or private keys. UTXO lookup and broadcast use the mempool.space Signet API."],
@@ -396,9 +396,9 @@ const translationPairs = [
   ["公開テストウォレットのSeedQR", "SeedQR for the public test wallet"],
   ["公開デモSeedQRの送金元アドレスが一致しません。", "The source address does not match the public Demo SeedQR."],
   ["公開テストシードです。価値のあるコインには使用しないでください。", "This is a public test seed. Do not use it with coins that have value."],
-  ["Jitsu WalletのノートPC", "Jitsu Wallet laptop"],
+  ["Bitwasm WalletのノートPC", "Bitwasm Wallet laptop"],
   ["フレームをドラッグしてWalletを移動", "Drag the frame to move the wallet"],
-  ["Jitsu Wallet · 送金（watch only）", "Jitsu Wallet · Send (watch only)"],
+  ["Bitwasm Wallet · 送金（watch only）", "Bitwasm Wallet · Send (watch only)"],
   ["1 / 4 · 監視専用ウォレット", "1 / 4 · WATCH-ONLY WALLET"],
   ["ウォレットを確認", "Check wallet"],
   ["送金元アドレスは設定済みです。SeedQR読込後に照合します。", "The source address is prefilled and will be checked after the SeedQR is scanned."],
@@ -438,8 +438,8 @@ const translationPairs = [
   ["署名済み取引をブロードキャスト", "Broadcast signed transaction"],
   ["signetへブロードキャスト", "Broadcast to Signet"],
   ["署名画面に戻る", "Back to signing"],
-  ["Jitsu Wallet · ブラウザデモ · 公開テストシード", "Jitsu Wallet · Browser demo · Public test seed"],
-  ["jitsu-in-pico ハードウェアウォレット", "jitsu-in-pico hardware wallet"],
+  ["Bitwasm Wallet · ブラウザデモ · 公開テストシード", "Bitwasm Wallet · Browser demo · Public test seed"],
+  ["bitwasm-signer-pico ハードウェアウォレット", "bitwasm-signer-pico hardware wallet"],
   ["HWWカメラ 照射範囲", "HWW camera beam"],
   ["PCカメラ 照射範囲", "PC camera beam"],
   ["読み取り対象", "Scan target"],
@@ -547,7 +547,7 @@ const translationMaps = {
   en: new Map(translationPairs.map(([ja, en]) => [ja, en])),
 };
 let pageLanguage = (() => {
-  try { return localStorage.getItem("jitsu-language") === "en" ? "en" : "ja"; }
+  try { return localStorage.getItem("bitwasm-language") === "en" ? "en" : "ja"; }
   catch { return "ja"; }
 })();
 function translateUiText(value, language = pageLanguage) {
@@ -629,12 +629,12 @@ function translateTree(node, language) {
 function setLanguage(language) {
   pageLanguage = language === "en" ? "en" : "ja";
   document.documentElement.lang = pageLanguage;
-  document.title = translateUiText("仮想AirGap取引 | jitsu-in-pico", pageLanguage);
+  document.title = translateUiText("仮想AirGap取引 | bitwasm-signer-pico", pageLanguage);
   translateTree(document.body, pageLanguage);
   document.querySelectorAll("[data-language]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.language === pageLanguage)));
-  window.jitsuLanguage = pageLanguage;
-  window.jitsuTranslate = translateUiText;
-  try { localStorage.setItem("jitsu-language", pageLanguage); } catch {}
+  window.bitwasmLanguage = pageLanguage;
+  window.bitwasmTranslate = translateUiText;
+  try { localStorage.setItem("bitwasm-language", pageLanguage); } catch {}
   signerModule()?.setLanguage?.(pageLanguage);
 }
 document.querySelectorAll("[data-language]").forEach(button => button.addEventListener("click", () => setLanguage(button.dataset.language)));

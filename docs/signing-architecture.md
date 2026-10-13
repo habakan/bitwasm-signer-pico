@@ -111,7 +111,7 @@ to the PSBT. It only establishes two things:
 1. **`non_witness_utxo` for SegWit v0 inputs:** required for every input when a SegWit v0 input is to
    be signed and there are two or more inputs. With a single input it is unnecessary, since a signature
    made with a false amount is merely invalid. The minimal native tx parser
-   (`components/parts/parser/src/tx.c`, shared with jitsu-in) checks the txid, vout, amount and script
+   (`components/parts/parser/src/tx.c`, shared with bitwasm-signer) checks the txid, vout, amount and script
 2. **First targets:** P2WPKH (BIP84) and P2TR (BIP86, no script tree)
 3. **parser.wasm runtime:** the interpreter. Measured on RV32: 2.7M instructions
    to parse a PSBT and 40k to insert the signatures (§10), which is plenty
@@ -165,7 +165,7 @@ typedef struct {
 } plan_t;
 ```
 
-- The settled version is `components/parts/parser/include/plan.h`, on the jitsu-in side, with
+- The settled version is `components/parts/parser/include/plan.h`, on the bitwasm-signer side, with
   `_Static_assert` fixing the size and the offsets
 - At 16 inputs and 16 outputs it is 5,016 bytes: 176 per input, 136 per output. Barely a dent in RAM
 - These limits are part of the current parser ABI.
@@ -181,7 +181,7 @@ The native core is implemented in `components/parts/signer/` (`make check-core`,
 | `components/parts/signer/core.c` | the checks from §6 (`core_review`), the display model (`core_display`) and signing (`core_sign`). It records the SHA-256 of the reviewed plan and refuses to display or sign anything that does not match |
 | `components/parts/signer/address.c` | addresses from a scriptPubKey: base58check for P2PKH and P2SH, bech32 for witness v0, bech32m for v1-v16. Nothing is produced for a non-standard script |
 | `components/parts/signer/sighash.c` | BIP143 (P2WPKH, SIGHASH_ALL) and BIP341 key path, all seven hash types |
-| `components/parts/parser/src/tx.c` | the minimal tx parser, shared with jitsu-in. Refuses non-minimal varints and trailing bytes; the txid is computed without the witness |
+| `components/parts/parser/src/tx.c` | the minimal tx parser, shared with bitwasm-signer. Refuses non-minimal varints and trailing bytes; the txid is computed without the witness |
 | `components/parts/signer/bip32.c` | BIP32 derivation |
 | `components/parts/parser/src/sha256.c`, `components/parts/signer/ripemd160.c`, `sha512.c` | the hashes. Secrets are cleared through `components/parts/signer/wipe.h`, via a volatile pointer, so the optimiser cannot remove it |
 
@@ -216,7 +216,7 @@ Tests: 71 checks, passing on both the Mac and RV32:
 - Five deliberate breakages — BIP143's hash type, BIP341's spend_type, the fee-attack check, bech32m's
   constant, base58's leading zeros — were each confirmed to make a test fail
 
-### parser.wasm (`components/parts/parser/src/psbt.c`, the [jitsu-in](https://github.com/habakan/jitsu-in) submodule)
+### parser.wasm (`components/parts/parser/src/psbt.c`, the [bitwasm-signer](https://github.com/habakan/bitwasm-signer) submodule)
 
 - Turns a PSBT v0 (BIP174) into a `plan_t`, and inserts the natively produced signatures just before
   the end of each input map, leaving every other byte as it was
@@ -243,7 +243,7 @@ Verification (`make check-psbt`, `make check-qemu-psbt`):
 - Against Bitcoin Core's `test/functional/data/rpc_psbt.json` — 84 invalid and 48 valid, two of which
   have corrupt base64 and are excluded — there are no traps. Every invalid one is refused except the 15
   with MuSig2 fields. Of the valid ones 31 are accepted; the 14 PSBT v2 cases, two with no utxo and one
-  with no inputs are refused (`make check-parser` in jitsu-in, `make check-parser` here)
+  with no inputs are refused (`make check-parser` in bitwasm-signer, `make check-parser` here)
 - A full round on a mixed PSBT under RV32 (QEMU): parse 2.72M, review 17.1M, sign 14.5M, finalize 0.04M
   instructions. The signed PSBT is byte-identical between the Mac and RV32
 
@@ -314,7 +314,7 @@ breaks that (`core.c:93`). The comparison only requires agreement where both des
 
 ### Reassembling a UR, the animated QR
 
-UR (BCR-2020-005) reassembly went into parser.wasm (in jitsu-in). Reassembling a fountain code is
+UR (BCR-2020-005) reassembly went into parser.wasm (in bitwasm-signer). Reassembling a fountain code is
 also processing of untrusted input, so it belongs inside the sandbox.
 
 - `parser_ur_reset`, `parser_ur_receive(len)`, `parser_ur_progress`. On completion the PSBT sits in the
@@ -338,7 +338,7 @@ also processing of untrusted input, so it belongs inside the sandbox.
 - Encoding to a UR also lives in parser.wasm (`parser_ur_encode_start`, `parser_ur_encode_next`). It is
   formatting output for an untrusted wallet, so it has no bearing on the safety of the signature and can
   sit outside the TCB. Part for part it matches the reference encoder, @ngraveio/bc-ur, and it matches
-  bc-ur's examples character for character (tested in jitsu-in)
+  bc-ur's examples character for character (tested in bitwasm-signer)
 - One part is 120 bytes, about 300 characters, which lands around QR v8, shown on the 240 px LCD at
   4 px per module (`ui_qr_render_line`, with a four-module quiet zone). Mixed parts keep coming after
   the pure ones, so a wallet that misses one can still reassemble

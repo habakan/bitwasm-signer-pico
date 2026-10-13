@@ -109,7 +109,7 @@ too.
 | no unfamiliar custom sections | nothing extra came along |
 
 The browser example and its auxiliary modules are maintained in
-[jitsu-in](https://github.com/habakan/jitsu-in/tree/main/examples/viewer).
+[bitwasm-signer](https://github.com/habakan/bitwasm-signer/tree/main/examples/viewer).
 
 ## Pinning the dependencies too
 

@@ -30,7 +30,7 @@ $(WAMRC):
 	ninja -C build/wamrc >/dev/null
 
 
-# Build parser.wasm with the jitsu-in submodule's Makefile.
+# Build parser.wasm with the bitwasm-signer submodule's Makefile.
 build/parser.wasm: components/parts/parser/c/src/*.c components/parts/parser/c/include/*.h
 	mkdir -p build
 	$(MAKE) -C components/parts/parser build/parser.wasm LLVM=$(LLVM) WASI=$(WASI) RTLIB=$(RTLIB) WASM_OPT=$(WASM_OPT)

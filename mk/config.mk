@@ -21,7 +21,7 @@ QUIRC       ?= components/qr/quirc/lib
 QUIRC_DEFS  ?= -DQUIRC_FIXED_POINT_FITNESS -DQUIRC_FLOAT_TYPE=float -DQUIRC_USE_TGMATH
 QRGEN       := third_party/QR-Code-generator/c
 
-# tx.c and sha256.c are shared with the jitsu-in submodule.
+# tx.c and sha256.c are shared with the bitwasm-signer submodule.
 CORE_SRC := components/parts/signer/core.c components/parts/signer/address.c components/parts/signer/bip32.c components/parts/signer/sighash.c \
             components/parts/signer/seedqr.c components/parts/signer/bip85.c components/parts/signer/multisig.c \
             components/parts/signer/cbor.c components/parts/signer/ripemd160.c components/parts/signer/sha512.c \

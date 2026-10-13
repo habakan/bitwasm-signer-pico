@@ -1,6 +1,6 @@
 # Browser demo
 
-[Open the live demo](https://habakan.github.io/jitsu-in-pico/).
+[Open the live demo](https://habakan.github.io/bitwasm-signer-pico/).
 
 The page runs the Pico firmware's `main.c`, UI, signing core, and `parser.wasm` in a browser. Emscripten builds them into a single HTML file. The adapter in `hal.c` sends LCD frames to a canvas, maps keyboard and button input to firmware keys, and supplies camera frames when scanning a PSBT.
 
