@@ -1,0 +1,1819 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仮想AirGap取引 | bitwasm-signer-pico</title>
+<style>
+:root { color-scheme: light dark; --bg:#f4f2ee; --fg:#1d1c1a; --muted:#6b6760; --panel:#fff; --line:#d9d5cd; --accent:#3d3b38; --accent-fg:#f4f2ee; --warn:#fdecc8; }
+@media (prefers-color-scheme: dark) { :root { --bg:#161514; --fg:#ece9e3; --muted:#9c978e; --panel:#201f1d; --line:#34322f; --accent:#3a3835; --accent-fg:#f4f2ee; --warn:#3b2c0c; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,sans-serif; }
+main { max-width:1540px; margin:auto; padding:24px 16px 48px; }
+h1 { font-size:25px; margin:0 0 6px; }
+.page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; }
+.language-switch { display:flex; flex:none; gap:4px; padding:4px; border:1px solid var(--line); border-radius:9px; background:var(--panel); }
+.language-switch button { padding:6px 10px; background:transparent; color:var(--fg); font-size:12px; }
+.language-switch button[aria-pressed="true"] { background:var(--accent); color:var(--accent-fg); }
+h2 { font-size:18px; margin:0 0 10px; }
+p { color:var(--muted); margin:0 0 14px; }
+a { color:inherit; }
+.warning { padding:12px 14px; border-radius:9px; background:var(--warn); margin:16px 0; }
+.experience-layout { display:grid; grid-template-columns:minmax(0,1fr) 248px; gap:18px; align-items:start; }
+.onboarding { position:fixed; top:16px; right:max(16px,calc(50vw - 754px)); z-index:10; width:248px; max-height:calc(100vh - 32px); overflow:auto; margin:0; padding:16px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+.onboarding-header { display:flex; flex-direction:column; justify-content:space-between; align-items:flex-start; gap:8px; }
+.onboarding-kicker { color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.08em; }
+.onboarding-header h2 { margin:2px 0 0; font-size:18px; }
+.onboarding-count { flex:none; padding:4px 8px; border-radius:20px; background:var(--bg); color:var(--muted); font-size:12px; }
+.onboarding-steps { display:grid; grid-template-columns:1fr; gap:7px; margin:14px 0; padding:0; list-style:none; }
+.onboarding-step { display:flex; align-items:center; gap:7px; min-width:0; padding:8px; border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:12px; }
+.onboarding-step-number { display:grid; width:22px; height:22px; flex:none; place-items:center; border:1px solid var(--line); border-radius:50%; font-size:11px; font-weight:700; }
+.onboarding-step[data-state="current"] { border-color:var(--accent); background:var(--bg); color:var(--fg); font-weight:650; }
+.onboarding-step[data-state="current"] .onboarding-step-number { border-color:var(--accent); background:var(--accent); color:var(--accent-fg); }
+.onboarding-step[data-state="done"] .onboarding-step-number { border-color:#3d7650; background:#3d7650; color:#fff; }
+.onboarding-action { padding:10px 12px; border-left:3px solid var(--accent); border-radius:0 7px 7px 0; background:var(--bg); }
+.onboarding-action strong { display:block; margin-bottom:3px; font-size:12px; }
+.onboarding-action p { margin:0; color:var(--fg); font-size:13px; }
+@media (min-width:1241px) { .page-heading, .warning { max-width:calc(100% - 266px); } }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; }
+.wallet { margin:18px 0; }
+.flow { position:relative; grid-column:1; grid-row:1; display:grid; grid-template-columns:minmax(0,1.7fr) minmax(380px,1fr); gap:18px; align-items:start; }
+.wallet-laptop { position:relative; min-width:0; padding:12px 12px 0; cursor:grab; touch-action:none; }
+.wallet-camera-lens { position:absolute; top:14px; left:50%; z-index:1; width:8px; height:8px; transform:translateX(-50%); border:1px solid #aaa; border-radius:50%; background:radial-gradient(circle,#91aab4 0 24%,#202629 42% 100%); box-shadow:0 0 0 2px #343536; }
+.wallet-laptop::after { content:""; display:block; height:24px; margin:0 -12px; border:1px solid #aaa8a2; border-top:0; border-radius:0 0 10px 10px; clip-path:polygon(0 0,100% 0,96% 100%,4% 100%); background:linear-gradient(#b9b7b1,#deddd8) center 3px / 78% 8px no-repeat,linear-gradient(#aaa8a2,#aaa8a2) center 13px / 22% 7px no-repeat,linear-gradient(#c8c6c0,#e2e1dc 52%,#b8b6b0); box-shadow:inset 0 3px 0 #c1bfb9,0 7px 14px #15130f20; }
+.wallet-laptop.dragging, .wallet-laptop.dragging * { user-select:none; }
+.wallet-laptop.dragging { z-index:2; cursor:grabbing; filter:drop-shadow(0 14px 14px #15130f38); }
+.wallet-app { display:flex; flex-direction:column; height:540px; position:relative; padding:0; overflow:hidden; border:9px solid #292a2b; border-bottom-width:11px; border-radius:16px 16px 7px 7px; background:var(--panel); box-shadow:0 3px 8px #15130f24; }
+.titlebar { flex:none; height:44px; padding:0 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; background:#e9e7e2; color:#34322f; border-bottom:1px solid #d1cec7; font-size:13px; font-weight:650; cursor:grab; touch-action:none; user-select:none; }
+.titlebar > span:nth-child(2) { white-space:nowrap; }
+.titlebar:active { cursor:grabbing; }
+.window-lights { display:flex; gap:6px; }
+.window-lights i { width:10px; height:10px; display:block; border-radius:50%; background:#ed6a5e; }
+.window-lights i:nth-child(2) { background:#f4bf50; }
+.window-lights i:nth-child(3) { background:#61c454; }
+.network-badge { padding:3px 8px; border-radius:20px; background:#d8e8db; color:#285932; font-size:11px; }
+.wallet-body { display:flex; flex:1; min-height:0; overflow:hidden; }
+.wallet-main { display:flex; flex:1; min-width:0; min-height:0; padding:12px; }
+.wallet-screen { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; overflow:hidden; }
+.wallet-screen[hidden] { display:none; }
+.wallet-screen h2 { margin:0 0 4px; font-size:17px; }
+.wallet-screen > .hint { margin:0 0 7px; }
+.wallet-step { color:var(--muted); font-size:11px; }
+.balance-card { margin:8px 0; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--bg); }
+.balance-card span,.balance-card small { display:block; color:var(--muted); font-size:12px; }
+.balance-card strong { display:block; margin:4px 0; font:700 22px/1.3 ui-monospace,monospace; }
+.wallet-statusbar { flex:none; padding:8px 14px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
+label { display:block; font-weight:650; margin:12px 0 5px; }
+label:first-child { margin-top:0; }
+input,textarea { display:block; width:100%; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--fg); padding:10px; font:14px/1.4 ui-monospace,monospace; }
+.row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.wallet-screen-actions { display:flex; flex:none; justify-content:space-between; align-items:center; gap:8px; margin-top:auto; padding-top:8px; }
+.wallet-screen-actions button { flex:none; }
+.wallet-exchange-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(155px,.9fr); gap:10px; min-height:0; flex:1; }
+.wallet-qr-panel { margin-top:16px; padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--bg); }
+.wallet-screen .wallet-qr-panel { min-width:0; min-height:0; margin:0; padding:8px; overflow:hidden; }
+.wallet-screen .wallet-qr-panel h3 { font-size:13px; }
+.wallet-screen .wallet-qr-panel .hint { font-size:11px; line-height:1.35; margin:3px 0; }
+.wallet-qr-panel h3 { margin:0; font-size:14px; }
+.wallet-qr-panel[hidden], #qr-actions[hidden] { display:none; }
+.seed-stage { display:flex; flex-direction:column; align-items:flex-start; margin:18px 0; }
+.seed-qr-panel { width:fit-content; max-width:100%; margin:0; padding:15px; border:1px solid #d8cfb7; border-radius:2px; background-color:#f5f0df; background-image:repeating-linear-gradient(0deg,#6d583012 0 1px,transparent 1px 5px),linear-gradient(135deg,#fbf7e9,#f4efd9 58%,#eee5ce); color:#39362f; box-shadow:0 4px 12px #0002,inset 0 0 18px #c8b99322; }
+.seed-qr-panel h3 { margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid #d8cfb7; font-size:13px; font-weight:700; letter-spacing:.02em; }
+.seed-qr-panel .hint { color:#6d6759; }
+.seedqr-settings { margin-top:10px; }
+.seedqr-settings summary { cursor:pointer; font-weight:650; }
+.seedqr-settings input[type=file] { margin-top:8px; background:var(--panel); }
+.seedqr-settings .hint { max-width:700px; }
+button { border:0; border-radius:8px; padding:10px 14px; background:var(--accent); color:var(--accent-fg); font:650 14px system-ui; cursor:pointer; }
+button:disabled { opacity:.45; cursor:default; }
+.actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+.hint { font-size:13px; color:var(--muted); margin:5px 0 0; }
+#status { min-height:48px; white-space:pre-wrap; overflow-wrap:anywhere; }
+#qr, #seed-qr { width:min(100%, 220px); height:auto; display:block; margin:8px auto; background:#fff; image-rendering:pixelated; }
+#qr { width:min(100%, 160px); margin:4px auto; }
+#seed-qr { width:min(100%, 220px); }
+#seed-qr[hidden], #custom-seed-qr[hidden] { display:none; }
+#custom-seed-qr { width:min(100%, 220px); height:auto; display:block; margin:8px auto; background:#fff; image-rendering:pixelated; }
+.seed-qr-panel #seed-qr { padding:0; border:0; background:transparent; box-shadow:none; }
+.seed-qr-panel #custom-seed-qr { border:1px solid #d1c5a6; box-shadow:0 3px 8px #4a402c24; }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+#details { font:13px/1.5 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+#source { overflow-wrap:anywhere; }
+#source { padding:8px; font-size:12px; }
+#signer { width:100%; height:740px; display:block; border:0; background:transparent; color-scheme:light dark; }
+#hww-window { min-width:0; position:relative; z-index:3; }
+#hww-window.dragging { z-index:3; }
+#receive-layout { display:flex; flex-direction:column; min-height:0; margin-top:5px; }
+#receive-preview { width:min(100%, 144px); height:auto; aspect-ratio:4/3; display:block; margin:4px auto; border:1px solid var(--line); border-radius:7px; background:#111; image-rendering:pixelated; }
+#signed-result { margin-top:10px; }
+#signed-details { font:12px/1.45 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+#broadcast-status { min-height:28px; overflow-wrap:anywhere; }
+#camera-beam { display:block; position:fixed; inset:0; width:100vw; height:100vh; z-index:2; pointer-events:none; overflow:visible; }
+#camera-beam.wallet-camera-scan { z-index:4; }
+#camera-beam[hidden] { display:none; }
+#wallet-camera-frame { position:absolute; z-index:1; visibility:hidden; pointer-events:none; }
+#beam-cone { fill:var(--beam-fill); stroke:var(--beam-color); stroke-width:3; stroke-linejoin:round; }
+#beam-axis { stroke:var(--beam-color); stroke-width:3; stroke-dasharray:8 6; }
+#beam-origin { fill:var(--beam-color); stroke:#fff; stroke-width:3; }
+#beam-target { fill:var(--target-fill); stroke:var(--beam-color); stroke-width:4; }
+#beam-subject-halo { fill:none; stroke:#fff; stroke-width:8; }
+#beam-subject { fill:var(--subject-fill); stroke:var(--subject-color); stroke-width:4; }
+#beam-view-label-bg, #beam-subject-label-bg { fill:#171613; stroke:#fff; stroke-width:1.5; }
+#beam-view-label, #beam-subject-label { fill:#fff; font:700 13px system-ui,sans-serif; paint-order:stroke; stroke:#171613; stroke-width:2px; }
+@media (max-width:1240px) { .experience-layout { grid-template-columns:minmax(0,1fr); } .onboarding { position:static; grid-column:1; grid-row:1; width:auto; max-height:none; overflow:visible; } .flow { grid-column:1; grid-row:2; } .onboarding-header { flex-direction:row; align-items:center; } .onboarding-steps { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media (max-width:1080px) { .flow { grid-template-columns:1fr; } .wallet-laptop { width:min(100%,860px); margin:auto; } }
+@media (max-width:520px) { .wallet-app { height:540px; } .titlebar { gap:6px; padding:0 8px; } .titlebar > span:nth-child(2) { font-size:11px; } .network-badge { padding:3px 6px; font-size:10px; } .wallet-main { padding:9px; } .wallet-exchange-layout { grid-template-columns:minmax(0,1fr) minmax(110px,.8fr); gap:6px; } .wallet-screen .wallet-qr-panel { padding:6px; } #signed-details { font-size:10px; } }
+@media (max-width:620px) { .page-heading { align-items:flex-start; flex-direction:column-reverse; gap:8px; } .language-switch { align-self:flex-end; } }
+@media (max-width:620px) { .onboarding { padding:12px; } .onboarding-header { align-items:flex-start; flex-direction:column; } .onboarding-steps { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; } .onboarding-step { padding:7px; } }
+</style>
+</head>
+<body>
+<main>
+<div class="page-heading">
+  <div><h1>画面上で仮想AirGap取引を体験</h1>
+  <p>画面上のウォレットと署名器を操作し、PSBTの作成・署名からSignetへのテスト送金まで体験できます。</p></div>
+  <div class="language-switch" role="group" aria-label="表示言語">
+    <button type="button" data-language="ja" aria-pressed="true">日本語</button>
+    <button type="button" data-language="en" aria-pressed="false">English</button>
+  </div>
+</div>
+<div class="warning">このページはsignet専用です。通常は公開デモシードを使い、必要なら別のテスト用SeedQRを設定できます。実際の価値があるコインや秘密鍵は絶対に使わないでください。UTXO照会とブロードキャストにはmempool.space signet APIを使います。</div>
+<section class="wallet seed-stage">
+  <div class="wallet-qr-panel seed-qr-panel" id="seed-result">
+    <h3 id="seedqr-title">SeedQR (Demo)</h3>
+    <p class="hint sr-only" id="seedqr-hint">署名器で「Scan SeedQR」を選ぶと、HWWの仮想カメラがこのQRを読み取ります。</p>
+    <canvas id="seed-qr" width="480" height="480" aria-label="公開テストウォレットのSeedQR"></canvas>
+    <img id="custom-seed-qr" alt="選択したSeedQR画像" hidden>
+    <p class="hint sr-only" id="seedqr-status">公開テストシードです。価値のあるコインには使用しないでください。</p>
+  </div>
+  <details class="seedqr-settings" id="seedqr-settings">
+    <summary>SeedQRを変更</summary>
+    <p class="hint">PNG形式のSeedQR画像を選択してください。シード画像はこのブラウザ内だけで表示し、外部へアップロードしません。ブラウザ版は実用上の安全な署名器ではないため、実際のウォレットや価値のある資産のシードは使わないでください。</p>
+    <label for="seedqr-file">テスト用SeedQR画像 (PNG)</label>
+    <input id="seedqr-file" type="file" accept="image/png">
+    <div class="actions"><button id="use-custom-seed" type="button" disabled>選択したSeedQRを使う</button><button id="use-demo-seed" type="button">公開デモに戻す</button></div>
+    <p class="hint" id="seedqr-setting-status" aria-live="polite">公開デモSeedQRを使用中です。</p>
+  </details>
+</section>
+<div class="experience-layout">
+<section class="onboarding" aria-labelledby="onboarding-title">
+  <div class="onboarding-header">
+    <div><span class="onboarding-kicker">SIGNET 送金ガイド</span><h2 id="onboarding-title">送金の流れ</h2></div>
+    <span class="onboarding-count" id="onboarding-count">ステップ 1 / 4</span>
+  </div>
+  <ol class="onboarding-steps" aria-label="送金の進行状況">
+    <li class="onboarding-step" data-onboarding-step="1"><span class="onboarding-step-number">1</span><span>ウォレット</span></li>
+    <li class="onboarding-step" data-onboarding-step="2"><span class="onboarding-step-number">2</span><span>送金内容</span></li>
+    <li class="onboarding-step" data-onboarding-step="3"><span class="onboarding-step-number">3</span><span>HWW署名</span></li>
+    <li class="onboarding-step" data-onboarding-step="4"><span class="onboarding-step-number">4</span><span>Signetへ送信</span></li>
+  </ol>
+  <div class="onboarding-action"><strong>次にすること</strong><p id="onboarding-instruction" aria-live="polite">HWWの方向キーで「Scan SeedQR」を選び、OKを押します。HWWのレンズを上の紙SeedQRに向けてください。</p></div>
+</section>
+<div class="flow">
+  <div class="wallet-laptop" id="wallet-laptop" role="group" aria-label="Bitwasm WalletのノートPC">
+  <span class="wallet-camera-lens" id="wallet-camera-lens" aria-hidden="true"></span>
+  <form id="form" class="wallet-app">
+    <div class="titlebar" title="フレームをドラッグしてWalletを移動"><span class="window-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>Bitwasm Wallet · Send (watch only)</span><span class="network-badge">SIGNET</span></div>
+    <div class="wallet-body">
+      <div class="wallet-main">
+        <section class="wallet-screen" id="wallet-screen-address">
+          <span class="wallet-step">1 / 4 · WATCH-ONLY WALLET</span>
+          <h2>ウォレットを確認</h2>
+          <p class="hint">送金元アドレスは設定済みです。SeedQR読込後に照合します。</p>
+          <label for="source">送金元アドレス（Signet）</label>
+          <input id="source" readonly autocomplete="off" spellcheck="false" value="tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl" placeholder="SeedQR読み込み後に表示されます">
+          <div class="actions"><button id="refresh-balance" type="button">残高を再確認</button><button id="copy-source" type="button">コピー</button></div>
+          <div class="balance-card"><span>Confirmed balance</span><strong id="wallet-balance">— BTC</strong><small id="wallet-balance-hint">Signet残高を照会しています…</small></div>
+          <p class="hint" id="wallet-status" aria-live="polite">署名器を起動しています。</p>
+          <div class="wallet-screen-actions"><span></span><button id="wallet-next-compose" type="button" disabled>送金内容へ</button></div>
+        </section>
+        <section class="wallet-screen" id="wallet-screen-compose" hidden>
+          <span class="wallet-step">2 / 4 · CREATE TRANSACTION</span>
+          <h2>送金内容を作成</h2>
+          <p class="hint">送金先と金額を指定し、未署名取引を作ります。</p>
+          <label for="destination">送金先アドレス</label>
+          <input id="destination" required autocomplete="off" spellcheck="false" value="tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx">
+          <div class="row">
+            <div><label for="amount">送金額 (BTC)</label><input id="amount" required inputmode="decimal" value="0.00005000"></div>
+            <div><label for="feerate">手数料率 (sat/vB)</label><input id="feerate" required inputmode="decimal" value="1"></div>
+          </div>
+          <p class="hint">confirmed UTXOが必要です。1件のUTXOを使う取引を作ります。</p>
+          <p id="status" aria-live="polite">送金元アドレスを読み込んでください。</p>
+          <div class="wallet-screen-actions"><button id="wallet-back-address" type="button">戻る</button><button id="create" type="submit" disabled>PSBTを作成</button></div>
+        </section>
+        <section class="wallet-screen" id="wallet-screen-psbt" hidden>
+          <span class="wallet-step">3 / 4 · SIGN AND SCAN</span>
+          <h2>PSBTを表示して署名</h2>
+          <div class="wallet-exchange-layout">
+            <div class="wallet-qr-panel" id="result" hidden>
+              <h3 id="qr-title">Unsigned PSBT · Animated QR</h3>
+              <p class="hint" id="qr-hint">署名器で「Scan PSBT」を選びます。</p>
+              <canvas id="qr" width="480" height="480" aria-label="unsigned PSBT のアニメーションQR"></canvas>
+              <p id="details"></p>
+              <div class="actions" id="qr-actions" hidden><button id="download" type="button" disabled>PSBTを保存</button><button id="toggle" type="button" disabled>QRを停止</button></div>
+            </div>
+            <section class="wallet-qr-panel" id="signed-receive">
+              <h3>署名済みPSBTを受信</h3>
+              <p class="hint">署名器で署名後、枠内に画面を合わせます。</p>
+              <div class="actions"><button id="scan-signed" type="button" disabled>Walletカメラを起動</button></div>
+              <div id="receive-layout">
+                <canvas id="receive-preview" width="320" height="240" aria-label="Walletの仮想カメラ映像"></canvas>
+                <p class="hint" id="scan-status" aria-live="polite">PSBT作成後にスキャンできます。</p>
+              </div>
+            </section>
+          </div>
+          <p id="status-psbt" class="hint" aria-live="polite"></p>
+          <div class="wallet-screen-actions"><button id="wallet-back-compose" type="button">送金内容に戻る</button><span></span></div>
+        </section>
+        <section class="wallet-screen" id="wallet-screen-broadcast" hidden>
+          <span class="wallet-step">4 / 4 · BROADCAST</span>
+          <h2>署名済み取引をブロードキャスト</h2>
+          <div id="signed-result" hidden>
+            <p id="signed-details"></p>
+            <div class="actions"><button id="broadcast" type="button" disabled>signetへブロードキャスト</button></div>
+            <p id="broadcast-status" aria-live="polite"></p>
+          </div>
+          <div class="wallet-screen-actions"><button id="wallet-back-psbt" type="button">署名画面に戻る</button><span></span></div>
+        </section>
+      </div>
+    </div>
+    <div class="wallet-statusbar">Bitwasm Wallet · Browser demo · Public test seed</div>
+  </form>
+  </div>
+  <section class="hww-window" id="hww-window" aria-label="bitwasm-signer-pico hardware wallet">
+    <iframe id="signer" src="signer.html" title="bitwasm-signer-pico hardware wallet"></iframe>
+  </section>
+  <div id="wallet-camera-frame" aria-hidden="true"></div>
+</div>
+</div>
+</main>
+<svg id="camera-beam" aria-hidden="true" hidden>
+  <polygon id="beam-cone"></polygon>
+  <line id="beam-axis"></line>
+  <circle id="beam-origin" r="7"></circle>
+  <rect id="beam-target" rx="7"></rect>
+  <rect id="beam-subject-halo" rx="5" visibility="hidden"></rect>
+  <rect id="beam-subject" rx="4" visibility="hidden"></rect>
+  <rect id="beam-view-label-bg" rx="5"></rect>
+  <text id="beam-view-label"></text>
+  <rect id="beam-subject-label-bg" rx="4" visibility="hidden"></rect>
+  <text id="beam-subject-label" visibility="hidden"></text>
+</svg>
+<script src="./html2canvas.min.js"></script>
+<script src="./jsQR.min.js"></script>
+<script type="module">
+import createSendSupport from "./send_support.js";
+import { Parser } from "./parser.mjs";
+
+const API = "https://mempool.space/signet/api";
+const PARSER_SHA256 = "329112642baa63a074d63fc75dddaff0b7b47ce7e69b036b63844b23ca050926";
+const MAX_INDEX = 999;
+const DEFAULT_DESTINATION = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx";
+const DEFAULT_SOURCE_ADDRESS = "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl";
+const TEST_SEEDQR = "0000".repeat(11) + "0003";
+const statusEl = document.getElementById("status");
+const form = document.getElementById("form");
+const result = document.getElementById("result");
+const canvas = document.getElementById("qr");
+const seedCanvas = document.getElementById("seed-qr");
+const customSeedImage = document.getElementById("custom-seed-qr");
+const seedQrFile = document.getElementById("seedqr-file");
+const useCustomSeedButton = document.getElementById("use-custom-seed");
+const useDemoSeedButton = document.getElementById("use-demo-seed");
+const seedQrTitle = document.getElementById("seedqr-title");
+const seedQrHint = document.getElementById("seedqr-hint");
+const seedQrStatus = document.getElementById("seedqr-status");
+const seedSettingsStatus = document.getElementById("seedqr-setting-status");
+const details = document.getElementById("details");
+const qrTitle = document.getElementById("qr-title");
+const qrHint = document.getElementById("qr-hint");
+const qrActions = document.getElementById("qr-actions");
+const createButton = document.getElementById("create");
+const downloadButton = document.getElementById("download");
+const toggleButton = document.getElementById("toggle");
+const refreshBalanceButton = document.getElementById("refresh-balance");
+const copySourceButton = document.getElementById("copy-source");
+const walletStatus = document.getElementById("wallet-status");
+const sourceInput = document.getElementById("source");
+const walletNextCompose = document.getElementById("wallet-next-compose");
+const walletBalance = document.getElementById("wallet-balance");
+const walletBalanceHint = document.getElementById("wallet-balance-hint");
+const psbtStatus = document.getElementById("status-psbt");
+const walletScreens = [...document.querySelectorAll(".wallet-screen")];
+const destinationInput = document.getElementById("destination");
+const signerFrame = document.getElementById("signer");
+const cameraBeam = document.getElementById("camera-beam");
+const beamCone = document.getElementById("beam-cone");
+const beamAxis = document.getElementById("beam-axis");
+const beamOrigin = document.getElementById("beam-origin");
+const beamTarget = document.getElementById("beam-target");
+const beamSubjectHalo = document.getElementById("beam-subject-halo");
+const beamSubject = document.getElementById("beam-subject");
+const beamViewLabelBg = document.getElementById("beam-view-label-bg");
+const beamViewLabel = document.getElementById("beam-view-label");
+const beamSubjectLabelBg = document.getElementById("beam-subject-label-bg");
+const beamSubjectLabel = document.getElementById("beam-subject-label");
+const hwwWindow = document.getElementById("hww-window");
+const broadcastButton = document.getElementById("broadcast");
+const broadcastStatus = document.getElementById("broadcast-status");
+const scanButton = document.getElementById("scan-signed");
+const scanStatus = document.getElementById("scan-status");
+const signedResult = document.getElementById("signed-result");
+const onboardingTitle = document.getElementById("onboarding-title");
+const onboardingCount = document.getElementById("onboarding-count");
+const onboardingInstruction = document.getElementById("onboarding-instruction");
+const onboardingSteps = [...document.querySelectorAll("[data-onboarding-step]")];
+const receivePreview = document.getElementById("receive-preview");
+const receiveContext = receivePreview.getContext("2d", { willReadFrequently: true });
+const receiveDecodeCanvas = Object.assign(document.createElement("canvas"), { width: 640, height: 480 });
+const receiveDecodeContext = receiveDecodeCanvas.getContext("2d", { willReadFrequently: true });
+const walletLaptop = document.getElementById("wallet-laptop");
+const walletCameraLens = document.getElementById("wallet-camera-lens");
+const walletCameraFrame = document.getElementById("wallet-camera-frame");
+const encoder = new TextEncoder();
+let support, parser, wallet = null, source = null, signedPsbt = null, rawTransaction = null, signedHandled = false;
+let confirmedUtxoCount = null, fundingLookupFailed = false, sourceChecking = false, broadcastPending = false, broadcasted = false;
+let walletOffset = { x: 0, y: 0 }, walletDrag = null;
+let hwwOffset = { x: 0, y: 0 }, hwwDrag = null;
+let walletScanActive = false, hwwCameraScanning = false, receiveScanTimer = null, qrDetector = null, cameraQrId = "seed-qr";
+let seedMode = "demo", customSeedUrl = null;
+const translationPairs = [
+  ["SIGNET 送金ガイド", "SIGNET PAYMENT GUIDE"],
+  ["送金の流れ", "Payment flow"],
+  ["次にすること", "What to do next"],
+  ["送金が完了しました", "Payment complete"],
+  ["完了", "Complete"],
+  ["送金の進行状況", "Payment progress"],
+  ["ウォレット", "Wallet"],
+  ["送金内容", "Transaction"],
+  ["HWW署名", "Sign on HWW"],
+  ["Signetへ送信", "Broadcast"],
+  ["HWWの方向キーで「Scan SeedQR」を選び、OKを押します。HWWのレンズを上の紙SeedQRに向けてください。", "On the HWW, use the direction pad to choose “Scan SeedQR” and press OK. Point its camera at the paper SeedQR above."],
+  ["選択したSeedQRのアドレスが署名器の公開情報と一致しません。SeedQRを読み込み直してください。", "The selected SeedQR address does not match the signer’s public data. Scan the SeedQR again."],
+  ["公開デモSeedQRの送金元アドレスを照合しています。完了を待ってください。", "Checking the source address for the public Demo SeedQR. Please wait."],
+  ["選択したSeedQRの送金元アドレスを照合しています。完了を待ってください。", "Checking the source address for the selected SeedQR. Please wait."],
+  ["ウォレットの公開情報を読み込みました。送金元アドレスと確定残高を確認します。", "Wallet public data is loaded. Check the source address and confirmed balance."],
+  ["送金元アドレスの一致を確認しました。確定UTXOを照会しています。完了まで待ってください。", "The source address matches. Checking for confirmed UTXOs; please wait."],
+  ["確定残高を取得できませんでした。ネットワーク接続を確認し、「残高を再確認」を押してください。", "Could not retrieve the confirmed balance. Check the network connection, then choose “Refresh balance”."],
+  ["この送金元アドレスには確定UTXOがありません。Signetテストコインを用意し、承認後に「残高を再確認」を押してください。", "This source address has no confirmed UTXOs. Fund it with Signet test coins, then choose “Refresh balance” after confirmation."],
+  ["confirmed UTXOがありません。送金元アドレスにSignetテストコインを用意し、承認後に残高を再確認してください。", "No confirmed UTXOs. Fund the source address with Signet test coins, then refresh the balance after confirmation."],
+  ["送金元アドレスと確定残高を確認し、「送金内容へ」を押してください。確定UTXOが0件なら、先にSignetテストコインを用意します。", "Check the source address and confirmed balance, then choose “Continue to payment”. If there are no confirmed UTXOs, fund it with Signet test coins first."],
+  ["送金先アドレス、BTC金額、手数料率を入力し、内容を確認して「PSBTを作成」を押してください。", "Enter the recipient address, BTC amount, and fee rate. Review them, then choose “Create PSBT”."],
+  ["先にWalletの「Walletカメラを起動」を押します。次にHWWで「Scan PSBT」を選び、HWWカメラをWalletの動くQRへ向けてください。HWWに表示された送金先・金額・手数料を確認して署名します。", "Start the wallet camera first. On the HWW, choose “Scan PSBT” and point its camera at the animated QR in the wallet. Review the recipient, amount, and fee on the HWW, then sign."],
+  ["HWWに表示された送金先・金額・手数料を確認し、ボタンで署名してください。署名済みQRがPCカメラの枠に入ると、Walletが自動で読み取り検証します。", "Review the recipient, amount, and fee on the HWW, then sign. The wallet will read and verify the signed QR when it enters the PC camera frame."],
+  ["署名済み取引の送金先・金額・手数料をもう一度確認してください。問題がなければ「signetへブロードキャスト」を押します。", "Review the signed transaction’s recipient, amount, and fee. If everything is correct, choose “Broadcast to Signet”."],
+  ["Signetへ送信しています。ネットワークの応答を待ってください。", "Broadcasting to Signet. Waiting for a network response."],
+  ["取引をSignetに送信しました。下のTXIDリンクからブロックエクスプローラーで確認できます。", "The transaction was sent to Signet. Open the TXID link below to view it in the block explorer."],
+  ["仮想AirGap取引 | bitwasm-signer-pico", "Virtual AirGap transaction | bitwasm-signer-pico"],
+  ["画面上で仮想AirGap取引を体験", "Try a virtual AirGap transaction on screen"],
+  ["画面上のウォレットと署名器を操作し、PSBTの作成・署名からSignetへのテスト送金まで体験できます。", "Use the on-screen wallet and signer to create and sign a PSBT, then send a test transaction to Signet."],
+  ["このページはsignet専用です。通常は公開デモシードを使い、必要なら別のテスト用SeedQRを設定できます。実際の価値があるコインや秘密鍵は絶対に使わないでください。UTXO照会とブロードキャストにはmempool.space signet APIを使います。", "This page is for Signet only. It uses the public demo seed by default, and you can select another test SeedQR if needed. Never use real coins or private keys. UTXO lookup and broadcast use the mempool.space Signet API."],
+  ["表示言語", "Display language"],
+  ["SeedQRを変更", "Change SeedQR"],
+  ["SeedQR (Demo)", "SeedQR (Demo)"],
+  ["署名器で「Scan SeedQR」を選ぶと、HWWの仮想カメラがこのQRを読み取ります。", "Choose “Scan SeedQR” on the signer to let the HWW virtual camera read this QR."],
+  ["選択したSeedQR画像を読み込めませんでした。画像を選び直してください。", "Could not load the selected SeedQR image. Choose another image."],
+  ["選択したSeedQR画像", "Selected SeedQR image"],
+  ["選択したテスト用SeedQRをSignerでスキャンしてください。", "Scan the selected test SeedQR on the signer."],
+  ["PNG形式のSeedQR画像を選択してください。SeedQR画像はこのブラウザ内だけで表示し、外部へアップロードしません。ブラウザ版は実用上の安全な署名器ではないため、実際のウォレットや価値のある資産のシードは使わないでください。", "Choose a PNG image of a SeedQR. The image is displayed only in this browser and is not uploaded. This browser demo is not a secure signer, so do not use a real wallet seed or funds of value."],
+  ["テスト用SeedQR画像 (PNG)", "Test SeedQR image (PNG)"],
+  ["選択したSeedQRを使う", "Use selected SeedQR"],
+  ["公開デモに戻す", "Use public demo"],
+  ["公開デモSeedQRを使用中です。", "Using the public Demo SeedQR."],
+  ["別のシードを使うにはページを再読み込みしてください。", "Reload the page to use a different seed."],
+  ["選択したカスタムSeedQR · テスト用", "Selected custom SeedQR · Test use"],
+  ["PNG形式のSeedQR画像を選択してください。", "Choose a PNG image of a SeedQR."],
+  ["SeedQR PNGは10 MB以下にしてください。", "SeedQR PNG files must be 10 MB or smaller."],
+  ["SeedQR画像を読み込みました。使う場合はボタンを押してください。", "SeedQR image loaded. Press the button to use it."],
+  ["カスタムSeedQR読み込み済み", "Custom SeedQR loaded"],
+  ["Demo SeedQR読み込み済み", "Demo SeedQR loaded"],
+  ["アドレスをwatch-onlyで確認しています。", "Checking the address in watch-only mode."],
+  ["ブラウザ版ではテスト用シードだけを使用してください。実際の資産には使わないでください。", "Use test seeds only in this browser demo. Do not use it with real funds."],
+  ["カスタムSeedQRを読み込みました。送金元アドレスを確認しています。", "Custom SeedQR loaded. Checking the source address."],
+  ["SeedQRを読み込むと、署名器の公開情報から送金元アドレスを導出して照合します。", "After scanning the SeedQR, the wallet derives and checks the source address from the signer’s public data."],
+  ["SeedQR読み込み後に表示されます", "Shown after scanning the SeedQR"],
+  ["SeedQRを読み込みました。別シードに切り替えるにはページを再読み込みしてください。", "SeedQR loaded. Reload the page to switch to another seed."],
+  ["公開テストウォレットのSeedQR", "SeedQR for the public test wallet"],
+  ["公開デモSeedQRの送金元アドレスが一致しません。", "The source address does not match the public Demo SeedQR."],
+  ["公開テストシードです。価値のあるコインには使用しないでください。", "This is a public test seed. Do not use it with coins that have value."],
+  ["Bitwasm WalletのノートPC", "Bitwasm Wallet laptop"],
+  ["フレームをドラッグしてWalletを移動", "Drag the frame to move the wallet"],
+  ["Bitwasm Wallet · 送金（watch only）", "Bitwasm Wallet · Send (watch only)"],
+  ["1 / 4 · 監視専用ウォレット", "1 / 4 · WATCH-ONLY WALLET"],
+  ["ウォレットを確認", "Check wallet"],
+  ["送金元アドレスは設定済みです。SeedQR読込後に照合します。", "The source address is prefilled and will be checked after the SeedQR is scanned."],
+  ["送金元アドレス（Signet）", "Source address (Signet)"],
+  ["残高を再確認", "Refresh balance"],
+  ["コピー", "Copy"],
+  ["確定残高", "Confirmed balance"],
+  ["SeedQR読み込み後に照会します", "Checked after the SeedQR is scanned"],
+  ["Signet残高を照会しています…", "Looking up Signet balance…"],
+  ["残高を取得できませんでした", "Could not retrieve the balance."],
+  ["署名器を起動しています。", "Starting the signer…"],
+  ["送金内容へ", "Continue to payment"],
+  ["2 / 4 · 取引を作成", "2 / 4 · CREATE TRANSACTION"],
+  ["送金内容を作成", "Create transaction"],
+  ["送金先と金額を指定し、未署名取引を作ります。", "Choose a recipient and amount to create an unsigned transaction."],
+  ["送金先アドレス", "Recipient address"],
+  ["送金額 (BTC)", "Amount (BTC)"],
+  ["手数料率 (sat/vB)", "Fee rate (sat/vB)"],
+  ["confirmed UTXOが必要です。1件のUTXOを使う取引を作ります。", "A confirmed UTXO is required. This demo creates a transaction using one UTXO."],
+  ["送金元アドレスを読み込んでください。", "Load the source address first."],
+  ["戻る", "Back"],
+  ["PSBTを作成", "Create PSBT"],
+  ["3 / 4 · 署名と読み取り", "3 / 4 · SIGN AND SCAN"],
+  ["PSBTを表示して署名", "Display and sign the PSBT"],
+  ["未署名PSBT · アニメーションQR", "Unsigned PSBT · Animated QR"],
+  ["署名器で「Scan PSBT」を選びます。", "Choose “Scan PSBT” on the signer."],
+  ["unsigned PSBT のアニメーションQR", "Animated QR for the unsigned PSBT"],
+  ["PSBTを保存", "Save PSBT"],
+  ["QRを停止", "Pause QR"],
+  ["署名済みPSBTを受信", "Receive signed PSBT"],
+  ["署名器で署名後、枠内に画面を合わせます。", "After signing, align the signer screen with the camera frame."],
+  ["Walletカメラを起動", "Start wallet camera"],
+  ["Walletの仮想カメラ映像", "Wallet virtual camera view"],
+  ["PSBT作成後にスキャンできます。", "Scanning is available after creating the PSBT."],
+  ["送金内容に戻る", "Back to transaction"],
+  ["4 / 4 · ブロードキャスト", "4 / 4 · BROADCAST"],
+  ["署名済み取引をブロードキャスト", "Broadcast signed transaction"],
+  ["signetへブロードキャスト", "Broadcast to Signet"],
+  ["署名画面に戻る", "Back to signing"],
+  ["Bitwasm Wallet · ブラウザデモ · 公開テストシード", "Bitwasm Wallet · Browser demo · Public test seed"],
+  ["bitwasm-signer-pico ハードウェアウォレット", "bitwasm-signer-pico hardware wallet"],
+  ["HWWカメラ 照射範囲", "HWW camera beam"],
+  ["PCカメラ 照射範囲", "PC camera beam"],
+  ["読み取り対象", "Scan target"],
+  ["仮想カメラ · QR待機中", "Virtual camera · Waiting for QR"],
+  ["仮想カメラ · QRが照準範囲内", "Virtual camera · QR in view"],
+  ["仮想カメラ · 照準内のQRを待機中", "Virtual camera · Waiting for QR in view"],
+  ["仮想カメラ · 映像を読み込めません", "Virtual camera · Could not load the image"],
+  ["仮想カメラ · 画面映像を利用できずQRのみ表示中", "Virtual camera · Screen view unavailable; showing QR only"],
+  ["仮想カメラレンズ", "Virtual camera lens"],
+  ["ハードウェアウォレットの画面", "Hardware wallet display"],
+  ["方向パッド", "Directional pad"],
+  ["操作方式", "Control layout"],
+  ["2ボタン操作", "Two-button controls"],
+  ["2ボタン", "2 buttons"], ["5方向キー", "5-way pad"],
+  ["次へ", "Next"], ["決定", "Select"],
+  ["ドラッグまたは矢印キーでHWWを移動", "Drag or use arrow keys to move the HWW"],
+  ["セキュアディスプレイ", "SECURE DISPLAY"],
+  ["署名器の詳細", "Signer details"],
+  ["Pico 2ファームウェアと署名コアをブラウザで実行しています。両方の操作方式で「次へ」で進み、「PUSH」で決定します。5方向キーでは前の画面にも戻れます。キーボード: ↓ / Nで次へ、Enterで決定、Escでキャンセル。", "Pico 2 firmware and signing core run in the browser. Use NEXT to move and PUSH to select in both layouts; the 5-way pad also supports reverse navigation. Keyboard: ↓ / N for next, Enter to select, Esc to cancel."],
+  ["署名済みURをダウンロード", "Download signed UR"],
+  ["上", "Up"], ["下", "Down"], ["左", "Left"], ["右", "Right"],
+  ["QRを再開", "Resume QR"],
+  ["スキャンを停止", "Stop scanning"],
+  ["署名済みPSBTを受信しました", "Signed PSBT received"],
+  ["署名済みPSBTを受信し、取引内容を検証しています…", "Signed PSBT received. Verifying the transaction…"],
+  ["署名済みPSBTを受信しました。取引内容を検証しています…", "Signed PSBT received. Verifying the transaction…"],
+  ["署名済みPSBTを受信し、送金内容と署名を検証しました。", "Signed PSBT received. Transaction details and signature verified."],
+  ["Signerの画面を準備しています。", "Preparing the signer display."],
+  ["PCカメラ映像を準備しています。映像はWalletの位置に追従します。", "Preparing the PC camera view. It follows the wallet position."],
+  ["PCカメラ映像を準備しています。Walletを動かすと照準範囲も移動します。", "Preparing the PC camera view. Move the wallet to move the scan area."],
+  ["PSBTを作成しました。署名器が署名済みPSBTを表示する前にスキャンを開始してください。", "PSBT created. Start scanning before the signer displays the signed PSBT."],
+  ["署名器で「Scan PSBT」を選ぶと、このQRを仮想カメラで読み取ります。", "Choose “Scan PSBT” on the signer to read this QR with its virtual camera."],
+  ["署名器で「Scan PSBT」を選び、Walletカメラの枠に署名器の画面を合わせてください。", "Choose “Scan PSBT” on the signer, then align its display with the wallet camera frame."],
+  ["署名器の準備ができました。「Scan SeedQR」を選んでください。", "The signer is ready. Choose “Scan SeedQR”."],
+  ["Webカメラ", "Web camera"],
+  ["Webカメラ入力", "Web camera input"],
+  ["変更したアドレスを読み込んでください。", "Load the updated address."],
+  ["送金元アドレスをコピーしました。", "Source address copied."],
+  ["Walletカメラを停止しました。", "Wallet camera stopped."],
+  ["PSBT作成後にスキャンできます。", "Scanning is available after creating the PSBT."],
+  ["送金元UTXOを確認し、PSBTを組み立てています…", "Checking the source UTXO and building the PSBT…"],
+  ["先にウォレットを読み込んでください。", "Load the wallet first."],
+  ["送金元アドレスを読み込み直してください。", "Reload the source address."],
+  ["送金額は0より大きく、2100万 BTC 以下にしてください。", "Amount must be greater than zero and no more than 21 million BTC."],
+  ["PSBTをURに変換できませんでした。", "Could not encode the PSBT as UR."],
+  ["ページ内署名器が起動していません。", "The signer embedded in this page is not ready."],
+  ["署名済みPSBTの取引内容が作成時から変わっています。", "The signed PSBT transaction differs from the one that was created."],
+  ["このページはP2WPKHの1入力取引だけを確定できます。", "This page can finalize only one-input P2WPKH transactions."],
+  ["PSBTに未対応の余分なデータがあります。", "The PSBT contains unsupported extra data."],
+  ["署名済みPSBTにwitness UTXOがありません。", "The signed PSBT has no witness UTXO."],
+  ["署名済みPSBTの入力が送金元と一致しません。", "The signed PSBT input does not match the source address."],
+  ["署名が見つかりません。", "No signature was found."],
+  ["P2WPKH署名が送金元の公開鍵と一致しません。", "The P2WPKH signature does not match the source public key."],
+  ["アドレスと公開鍵が一致しません。", "The address does not match the public key."],
+  ["不正なbech32アドレスです。", "Invalid bech32 address."],
+  ["送金額は小数8桁以内のBTCで入力してください。", "Enter the amount in BTC with up to 8 decimal places."],
+  ["手数料率は0より大きい数値で入力してください。", "Enter a fee rate greater than zero."],
+  ["アドレスの大文字・小文字が混在しています。", "Address cannot mix uppercase and lowercase characters."],
+  ["signet の tb1... アドレスを入力してください。", "Enter a Signet tb1... address."],
+  ["signet の bech32 アドレスではありません。", "This is not a Signet bech32 address."],
+  ["アドレスのbech32 checksumが正しくありません。", "The address has an invalid bech32 checksum."],
+  ["このページはBIP84のtb1qアドレスに対応しています。", "This page supports BIP84 tb1q addresses."],
+  ["このページはP2WPKH (tb1q...) アドレスに対応しています。", "This page supports P2WPKH (tb1q...) addresses."],
+  ["署名器が表示した BIP84 の wpkh descriptor を貼り付けてください。", "Paste the BIP84 wpkh descriptor shown by the signer."],
+  ["descriptor の account が範囲外です。", "The descriptor account is out of range."],
+  ["descriptor の tpub が不正です。", "The descriptor tpub is invalid."],
+  ["descriptor の tpub 長が正しくありません。", "The descriptor tpub has an invalid length."],
+  ["descriptor の tpub checksum が正しくありません。", "The descriptor tpub has an invalid checksum."],
+  ["testnet/signet 用の account tpub を入力してください。", "Enter an account tpub for testnet or Signet."],
+  ["変更アドレスを導出できません。", "Could not derive the change address."],
+  ["送金額と手数料をまかなえるUTXOが1件ありません。ウォレット側でコインをまとめてください。", "No single UTXO can cover the amount and fee. Consolidate coins in the wallet first."],
+  ["confirmed UTXO がありません。送金元アドレスにSignetテストコインを用意してください。", "No confirmed UTXOs. Fund the source address with Signet test coins."],
+  ["UTXOの残高が送金額と手数料に足りません。", "The UTXO balance is too small to cover the amount and fee."],
+  ["PSBTがparser.wasmの上限を超えています。", "The PSBT exceeds the parser.wasm size limit."],
+  ["parser.wasmの出力領域が不正です。", "The parser.wasm output buffer is invalid."],
+  ["URフレームをQRに変換できませんでした。", "Could not render the UR frame as a QR code."],
+  ["取引データが途中で切れています。", "The transaction data is truncated."],
+  ["取引データの長さが大きすぎます。", "The transaction data is too large."],
+  ["PSBTのkeyが途中で切れています。", "The PSBT key is truncated."],
+  ["PSBTのvalueが途中で切れています。", "The PSBT value is truncated."],
+  ["PSBTに重複したkeyがあります。", "The PSBT contains a duplicate key."],
+  ["unsigned transactionが短すぎます。", "The unsigned transaction is too short."],
+  ["transaction inputが途中で切れています。", "The transaction input is truncated."],
+  ["P2WPKH inputのscriptSigが不正です。", "The P2WPKH input scriptSig is invalid."],
+  ["transaction outputが途中で切れています。", "The transaction output is truncated."],
+  ["transaction output scriptが途中で切れています。", "The transaction output script is truncated."],
+  ["unsigned transactionの末尾が不正です。", "The unsigned transaction has an invalid ending."],
+  ["witness UTXOが短すぎます。", "The witness UTXO is too short."],
+  ["witness UTXOのscript長が不正です。", "The witness UTXO script length is invalid."],
+  ["署名器からPSBTを受け取れませんでした。", "Could not receive a PSBT from the signer."],
+  ["署名器からPSBT以外のURを受信しました。", "Received a non-PSBT UR from the signer."],
+  ["Signer画面をPCカメラ範囲から取得できません。", "Could not capture the signer display in the PC camera area."],
+  ["parser.wasm を読み込めません。", "Could not load parser.wasm."],
+  ["送金元アドレスを入力してください。", "Enter a source address."],
+  ["送金元アドレスを読み込んでください。", "Load the source address first."],
+  ["先に署名器でSeedQRを読み込んでください。", "Load a SeedQR on the signer first."],
+  ["送金元アドレスの読み込み後に照会します", "Checked after the source address is loaded"],
+  ["SeedQRから受け取った公開情報を読み込んでいます…", "Loading the public data received from SeedQR…"],
+  ["送金元アドレスを公開情報と照合しています…", "Checking the source address against the public data…"],
+  ["残高を照会しています…", "Looking up the balance…"],
+  ["送信しました:", "Broadcast:"],
+];
+const translationMaps = {
+  ja: new Map(translationPairs.map(([ja, en]) => [en, ja])),
+  en: new Map(translationPairs.map(([ja, en]) => [ja, en])),
+};
+let pageLanguage = (() => {
+  try { return localStorage.getItem("bitwasm-language") === "en" ? "en" : "ja"; }
+  catch { return "ja"; }
+})();
+function translateUiText(value, language = pageLanguage) {
+  const text = String(value), trimmed = text.trim();
+  if (!trimmed) return text;
+  const exact = translationMaps[language].get(trimmed);
+  if (exact !== undefined) return text.slice(0, text.indexOf(trimmed)) + exact + text.slice(text.lastIndexOf(trimmed) + trimmed.length);
+  const prefixes = language === "en"
+    ? [["HWW起動エラー: ", "HWW startup error: "], ["HWW起動エラー · ", "HWW startup error · "], ["署名済み取引を検証できません: ", "Could not verify signed transaction: "], ["仮想カメラを利用できません: ", "Virtual camera unavailable: "], ["残高照会に失敗しました: ", "Balance lookup failed: "], ["ブロードキャストに失敗しました: ", "Broadcast failed: "], ["初期化に失敗しました: ", "Initialization failed: "], ["PCカメラ映像を取得できません: ", "Could not capture PC camera view: "], ["送金元アドレス: ", "Source address: "], ["送金先アドレス: ", "Recipient address: "], ["予期しない応答: ", "Unexpected response: "]]
+    : [["HWW startup error: ", "HWW起動エラー: "], ["HWW startup error · ", "HWW起動エラー · "], ["Could not verify signed transaction: ", "署名済み取引を検証できません: "], ["Virtual camera unavailable: ", "仮想カメラを利用できません: "], ["Balance lookup failed: ", "残高照会に失敗しました: "], ["Broadcast failed: ", "ブロードキャストに失敗しました: "], ["Initialization failed: ", "初期化に失敗しました: "], ["Could not capture PC camera view: ", "PCカメラ映像を取得できません: "], ["Source address: ", "送金元アドレス: "], ["Recipient address: ", "送金先アドレス: "], ["Unexpected response: ", "予期しない応答: "]];
+  const prefix = prefixes.find(([from]) => trimmed.startsWith(from));
+  if (prefix) {
+    const nested = translateUiText(trimmed.slice(prefix[0].length), language);
+    const start = text.indexOf(trimmed);
+    return text.slice(0, start) + prefix[1] + nested + text.slice(start + trimmed.length);
+  }
+  const lines = trimmed.split("\n");
+  if (lines.length > 1) {
+    const translatedLines = lines.map(line => translateUiText(line, language));
+    if (translatedLines.some((line, index) => line !== lines[index]))
+      return text.slice(0, text.indexOf(trimmed)) + translatedLines.join("\n") + text.slice(text.lastIndexOf(trimmed) + trimmed.length);
+  }
+  let translated = trimmed;
+  if (language === "en") {
+    translated = translated
+      .replace(/^ステップ (\d+) \/ 4$/, "Step $1 of 4")
+      .replace(/^UTXO照会に失敗しました \(HTTP (\d+)\)。$/, "UTXO lookup failed (HTTP $1).")
+      .replace(/^送金元アドレスがdescriptorの受取\/変更アドレス（index 0〜(\d+)）にありません。$/, "Source address is not in the descriptor receive/change range (index 0–$1).")
+      .replace(/^UR:CRYPTO-PSBT · (\d+)フレーム目（(\d+)枚）$/, "UR:CRYPTO-PSBT · frame $1 of $2")
+      .replace(/^送金額: (.+) BTC$/, "Amount: $1 BTC")
+      .replace(/^手数料: (\d+) sat$/, "Fee: $1 sat")
+      .replace(/^変更額: なし（余りは手数料）$/, "Change: none (remainder paid as fee)")
+      .replace(/^変更額: (.+)$/, "Change: $1")
+      .replace(/^入力: (.+)$/, "Input: $1")
+      .replace(/^送金先: (.+)$/, "Recipient: $1")
+      .replace(/^txid: (.+)$/, "txid: $1")
+      .replace(/^raw transaction: (.+)$/, "Raw transaction: $1")
+      .replace(/^署名済みPSBTを受信しました。$/, "Signed PSBT received.")
+      .replace(/^confirmed UTXO (\d+)件$/, "$1 confirmed UTXO")
+      .replace(/^confirmed UTXO (\d+)件を確認しました。送金内容を作成できます。$/, "$1 confirmed UTXO found. You can create the transaction.")
+      .replace(/^公開情報と一致しました（(change|receive) \/ index (\d+)）。残高を照会しています…$/, "Address matches public data ($2 / index $3). Looking up the balance…")
+      .replace(/^署名済みPSBTを読み取り中 · (\d+)フレーム取得 · UR (.+)$/, "Reading signed PSBT · $1 frames received · UR $2")
+      .replace(/^署名済みPSBTを読み取り中 · UR (.+)$/, "Reading signed PSBT · UR $1");
+  } else {
+    translated = translated
+      .replace(/^Step (\d+) of 4$/, "ステップ $1 / 4")
+      .replace(/^UTXO lookup failed \(HTTP (\d+)\)\.$/, "UTXO照会に失敗しました (HTTP $1)。")
+      .replace(/^Source address is not in the descriptor receive\/change range \(index 0–(\d+)\)\.$/, "送金元アドレスがdescriptorの受取/変更アドレス（index 0〜$1）にありません。")
+      .replace(/^UR:CRYPTO-PSBT · frame (\d+) of (\d+)$/, "UR:CRYPTO-PSBT · $1フレーム目（$2枚）")
+      .replace(/^Amount: (.+) BTC$/, "送金額: $1 BTC")
+      .replace(/^Fee: (\d+) sat$/, "手数料: $1 sat")
+      .replace(/^Change: none \(remainder paid as fee\)$/, "変更額: なし（余りは手数料）")
+      .replace(/^Change: (.+)$/, "変更額: $1")
+      .replace(/^Input: (.+)$/, "入力: $1")
+      .replace(/^Recipient: (.+)$/, "送金先: $1")
+      .replace(/^Raw transaction: (.+)$/, "raw transaction: $1")
+      .replace(/^Signed PSBT received\.$/, "署名済みPSBTを受信しました。")
+      .replace(/^(\d+) confirmed UTXO$/, "confirmed UTXO $1件")
+      .replace(/^(\d+) confirmed UTXO found\. You can create the transaction\.$/, "confirmed UTXO $1件を確認しました。送金内容を作成できます。")
+      .replace(/^Address matches public data \((change|receive) \/ index (\d+)\)\. Looking up the balance…$/, "公開情報と一致しました（$1 / index $2）。残高を照会しています…")
+      .replace(/^Reading signed PSBT · (\d+) frames received · UR (.+)$/, "署名済みPSBTを読み取り中 · $1フレーム取得 · UR $2")
+      .replace(/^Reading signed PSBT · UR (.+)$/, "署名済みPSBTを読み取り中 · UR $1");
+  }
+  if (translated !== trimmed) return text.slice(0, text.indexOf(trimmed)) + translated + text.slice(text.lastIndexOf(trimmed) + trimmed.length);
+  return text;
+}
+function translateTree(node, language) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const translated = translateUiText(node.nodeValue, language);
+    if (translated !== node.nodeValue) node.nodeValue = translated;
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  for (const attribute of ["aria-label", "title", "placeholder", "alt"]) {
+    if (node.hasAttribute(attribute)) node.setAttribute(attribute, translateUiText(node.getAttribute(attribute), language));
+  }
+  for (const child of node.childNodes) translateTree(child, language);
+}
+function setLanguage(language) {
+  pageLanguage = language === "en" ? "en" : "ja";
+  document.documentElement.lang = pageLanguage;
+  document.title = translateUiText("仮想AirGap取引 | bitwasm-signer-pico", pageLanguage);
+  translateTree(document.body, pageLanguage);
+  document.querySelectorAll("[data-language]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.language === pageLanguage)));
+  window.bitwasmLanguage = pageLanguage;
+  window.bitwasmTranslate = translateUiText;
+  try { localStorage.setItem("bitwasm-language", pageLanguage); } catch {}
+  signerModule()?.setLanguage?.(pageLanguage);
+}
+document.querySelectorAll("[data-language]").forEach(button => button.addEventListener("click", () => setLanguage(button.dataset.language)));
+setLanguage(pageLanguage);
+new MutationObserver(records => {
+  for (const record of records) {
+    if (record.type === "characterData") translateTree(record.target, pageLanguage);
+    else for (const node of record.addedNodes) translateTree(node, pageLanguage);
+  }
+}).observe(document.body, { subtree: true, childList: true, characterData: true });
+const hex = s => Uint8Array.from(s.match(/../g) || [], b => parseInt(b, 16));
+const concat = chunks => {
+  const out = new Uint8Array(chunks.reduce((n, b) => n + b.length, 0));
+  let at = 0;
+  for (const chunk of chunks) out.set(chunk, at), at += chunk.length;
+  return out;
+};
+const u32le = n => Uint8Array.of(n & 255, n >>> 8 & 255, n >>> 16 & 255, n >>> 24 & 255);
+const u64le = n => {
+  const out = new Uint8Array(8);
+  new DataView(out.buffer).setBigUint64(0, n, true);
+  return out;
+};
+const compact = n => n < 253 ? Uint8Array.of(n) : n <= 65535 ? Uint8Array.of(253, n & 255, n >>> 8) : Uint8Array.of(254, ...u32le(n));
+const psbtMap = entries => concat([...entries.flatMap(([key, value]) => [compact(key.length), key, compact(value.length), value]), Uint8Array.of(0)]);
+const txOutput = (amount, script) => concat([u64le(amount), compact(script.length), script]);
+
+function parseAmount(text) {
+  const m = text.trim().match(/^(0|[1-9]\d*)(?:\.(\d{1,8}))?$/);
+  if (!m) throw new Error("送金額は小数8桁以内のBTCで入力してください。");
+  return BigInt(m[1]) * 100000000n + BigInt((m[2] || "").padEnd(8, "0"));
+}
+
+function parseFeeRate(text) {
+  const m = text.trim().match(/^(0|[1-9]\d*)(?:\.(\d{1,3}))?$/);
+  if (!m) throw new Error("手数料率は0より大きい数値で入力してください。");
+  const value = BigInt(m[1]) * 1000n + BigInt((m[2] || "").padEnd(3, "0"));
+  if (!value) throw new Error("手数料率は0より大きい数値で入力してください。");
+  return value;
+}
+
+function feeFor(vsize, milliSatPerVbyte) {
+  return (BigInt(vsize) * milliSatPerVbyte + 999n) / 1000n;
+}
+
+function convertBits(values, from, to, pad = false) {
+  let acc = 0, bits = 0;
+  const maxAcc = (1 << (from + to - 1)) - 1;
+  const out = [];
+  for (const value of values) {
+    if (value < 0 || value >> from) throw new Error("不正なbech32アドレスです。");
+    acc = ((acc << from) | value) & maxAcc;
+    bits += from;
+    while (bits >= to) bits -= to, out.push((acc >> bits) & ((1 << to) - 1));
+  }
+  if (pad) {
+    if (bits) out.push((acc << (to - bits)) & ((1 << to) - 1));
+  } else if (bits >= from || ((acc << (to - bits)) & ((1 << to) - 1))) throw new Error("不正なbech32アドレスです。");
+  return Uint8Array.from(out);
+}
+
+function bech32Polymod(values) {
+  const gen = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+  let chk = 1;
+  for (const value of values) {
+    const top = chk >>> 25;
+    chk = ((chk & 0x1ffffff) << 5) ^ value;
+    for (let i = 0; i < 5; i++) if ((top >>> i) & 1) chk ^= gen[i];
+  }
+  return chk >>> 0;
+}
+
+function decodeP2wpkhAddress(address) {
+  const lower = address.toLowerCase(), upper = address.toUpperCase();
+  if (address !== lower && address !== upper) throw new Error("アドレスの大文字・小文字が混在しています。");
+  const text = lower;
+  if (text.length > 90 || !text.startsWith("tb1")) throw new Error("signet の tb1... アドレスを入力してください。");
+  const split = text.lastIndexOf("1"), hrp = text.slice(0, split), alphabet = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+  if (hrp !== "tb" || split < 1 || text.length - split < 7) throw new Error("signet の bech32 アドレスではありません。");
+  const data = [...text.slice(split + 1)].map(c => alphabet.indexOf(c));
+  if (data.some(v => v < 0)) throw new Error("不正なbech32アドレスです。");
+  const expanded = [...[...hrp].map(c => c.charCodeAt(0) >> 5), 0, ...[...hrp].map(c => c.charCodeAt(0) & 31), ...data];
+  if (bech32Polymod(expanded) !== 1) throw new Error("アドレスのbech32 checksumが正しくありません。");
+  if (data[0] !== 0) throw new Error("このページはBIP84のtb1qアドレスに対応しています。");
+  const program = convertBits(data.slice(1, -6), 5, 8);
+  if (program.length !== 20) throw new Error("このページはP2WPKH (tb1q...) アドレスに対応しています。");
+  return program;
+}
+
+function encodeP2wpkhAddress(program) {
+  const alphabet = "qpzry9x8gf2tvdw0s3jn54khce6mua7l", hrp = "tb";
+  const data = [0, ...convertBits(program, 8, 5, true)];
+  const expanded = [...[...hrp].map(c => c.charCodeAt(0) >> 5), 0, ...[...hrp].map(c => c.charCodeAt(0) & 31)];
+  let check = bech32Polymod([...expanded, ...data, 0, 0, 0, 0, 0, 0]) ^ 1;
+  const checksum = Array.from({ length: 6 }, (_, i) => (check >>> (5 * (5 - i))) & 31);
+  return `${hrp}1${[...data, ...checksum].map(v => alphabet[v]).join("")}`;
+}
+
+async function parseDescriptor(text) {
+  const line = text.trim().split(/\r?\n/).map(s => s.trim()).find(s => s.startsWith("wpkh(")) || text.trim();
+  const d = line.split("#", 1)[0];
+  const match = d.match(/^wpkh\(\[([\da-fA-F]{8})\/(?:84h|84')\/(?:1h|1')\/(\d+)(?:h|')\](tpub[1-9A-HJ-NP-Za-km-z]+)\/<0;1>\/\*\)$/);
+  if (!match) throw new Error("署名器が表示した BIP84 の wpkh descriptor を貼り付けてください。");
+  const account = Number(match[2]);
+  if (!Number.isSafeInteger(account) || account >= 0x80000000) throw new Error("descriptor の account が範囲外です。");
+  return { fingerprint: hex(match[1]), account, xpub: await awaitBase58(match[3]) };
+}
+
+function base58Decode(text) {
+  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let n = 0n;
+  for (const c of text) {
+    const d = alphabet.indexOf(c);
+    if (d < 0) throw new Error("descriptor の tpub が不正です。");
+    n = n * 58n + BigInt(d);
+  }
+  const bytes = [];
+  while (n) bytes.unshift(Number(n & 255n)), n >>= 8n;
+  for (const c of text) { if (c !== "1") break; bytes.unshift(0); }
+  return Uint8Array.from(bytes);
+}
+
+async function awaitBase58(text) {
+  const decoded = base58Decode(text);
+  if (decoded.length !== 82) throw new Error("descriptor の tpub 長が正しくありません。");
+  const data = decoded.slice(0, 78);
+  const first = await crypto.subtle.digest("SHA-256", data);
+  const checksum = new Uint8Array(await crypto.subtle.digest("SHA-256", first)).slice(0, 4);
+  if (checksum.some((b, i) => b !== decoded[78 + i])) throw new Error("descriptor の tpub checksum が正しくありません。");
+  if (data[0] !== 0x04 || data[1] !== 0x35 || data[2] !== 0x87 || data[3] !== 0xcf || data[4] !== 3)
+    throw new Error("testnet/signet 用の account tpub を入力してください。");
+  return data;
+}
+
+function findSourcePath(wallet, sourceProgram) {
+  const xpubPtr = support._malloc(78), programPtr = support._malloc(20), pathPtr = support._malloc(8), outPtr = support._malloc(55);
+  try {
+    support.HEAPU8.set(wallet.xpub, xpubPtr);
+    support.HEAPU8.set(sourceProgram, programPtr);
+    if (!support._find_p2wpkh(xpubPtr, programPtr, MAX_INDEX, pathPtr, outPtr))
+      throw new Error(`送金元アドレスがdescriptorの受取/変更アドレス（index 0〜${MAX_INDEX}）にありません。`);
+    const view = new DataView(support.HEAPU8.buffer);
+    return {
+      branch: view.getUint32(pathPtr, true),
+      index: view.getUint32(pathPtr + 4, true),
+      pubkey: support.HEAPU8.slice(outPtr, outPtr + 33),
+      script: support.HEAPU8.slice(outPtr + 33, outPtr + 55),
+    };
+  } finally {
+    support._free(xpubPtr); support._free(programPtr); support._free(pathPtr); support._free(outPtr);
+  }
+}
+
+function deriveChild(wallet, branch, index) {
+  const xpubPtr = support._malloc(78), outPtr = support._malloc(55);
+  try {
+    support.HEAPU8.set(wallet.xpub, xpubPtr);
+    if (!support._derive_p2wpkh(xpubPtr, branch, index, outPtr)) throw new Error("変更アドレスを導出できません。");
+    return {
+      pubkey: support.HEAPU8.slice(outPtr, outPtr + 33),
+      script: support.HEAPU8.slice(outPtr + 33, outPtr + 55),
+    };
+  } finally {
+    support._free(xpubPtr); support._free(outPtr);
+  }
+}
+
+function originValue(fingerprint, account, branch, index) {
+  return concat([fingerprint, u32le(0x80000054), u32le(0x80000001), u32le(0x80000000 + account), u32le(branch), u32le(index)]);
+}
+
+async function fetchUtxo(address, amount, oneOutputFee) {
+  const response = await fetch(`${API}/address/${encodeURIComponent(address)}/utxo`, { headers: { accept: "application/json" } });
+  if (!response.ok) throw new Error(`UTXO照会に失敗しました (HTTP ${response.status})。`);
+  const utxos = await response.json();
+  const candidates = utxos.filter(u => u.status?.confirmed === true && Number.isSafeInteger(u.value) && u.value > 0 &&
+    /^[0-9a-f]{64}$/i.test(u.txid) && Number.isSafeInteger(u.vout) && u.vout >= 0 && BigInt(u.value) >= amount + oneOutputFee);
+  candidates.sort((a, b) => a.value - b.value);
+  if (!candidates.length) {
+    if (utxos.some(u => u.status?.confirmed === true)) throw new Error("送金額と手数料をまかなえるUTXOが1件ありません。ウォレット側でコインをまとめてください。");
+    throw new Error("confirmed UTXO がありません。送金元アドレスにSignetテストコインを用意してください。");
+  }
+  return candidates[0];
+}
+
+function buildPsbtBytes(utxo, destinationScript, amount, feeRate) {
+  const feeWithChange = feeFor(140, feeRate), feeWithoutChange = feeFor(109, feeRate);
+  if (utxo.value < amount + feeWithoutChange) throw new Error("UTXOの残高が送金額と手数料に足りません。");
+  const change = utxo.value - amount - feeWithChange;
+  const useChange = change >= 546n;
+  const fee = useChange ? feeWithChange : utxo.value - amount;
+  const outputs = [[amount, destinationScript]];
+  if (useChange) outputs.push([change, utxo.changeScript]);
+  const unsignedTx = concat([
+    Uint8Array.of(2, 0, 0, 0, 1), hex(utxo.txid).reverse(), u32le(utxo.vout), Uint8Array.of(0),
+    Uint8Array.of(253, 255, 255, 255), compact(outputs.length),
+    ...outputs.map(([value, script]) => txOutput(value, script)),
+    Uint8Array.of(0, 0, 0, 0),
+  ]);
+  const inputEntries = [
+    [Uint8Array.of(1), txOutput(utxo.value, utxo.script)],
+    [concat([Uint8Array.of(6), utxo.pubkey]), originValue(utxo.fingerprint, utxo.account, utxo.branch, utxo.index)],
+  ];
+  const outputMaps = [psbtMap([])];
+  if (useChange) outputMaps.push(psbtMap([
+    [concat([Uint8Array.of(2), utxo.changePubkey]), originValue(utxo.fingerprint, utxo.account, 1, utxo.changeIndex)],
+  ]));
+  const psbt = concat([
+    Uint8Array.of(0x70, 0x73, 0x62, 0x74, 0xff),
+    psbtMap([[Uint8Array.of(0), unsignedTx]]),
+    psbtMap(inputEntries),
+    ...outputMaps,
+  ]);
+  return { psbt, unsignedTx, fee, change, useChange };
+}
+
+function encodePsbt(module, psbt, fragmentLen) {
+  if (psbt.length > module.inputCapacity) throw new Error("PSBTがparser.wasmの上限を超えています。");
+  const memory = new Uint8Array(module.exports.memory.buffer), offset = module.exports.parser_output();
+  if (offset < 0 || offset + psbt.length > memory.length) throw new Error("parser.wasmの出力領域が不正です。");
+  memory.set(psbt, offset);
+  return module.urEncode(psbt.length, fragmentLen);
+}
+
+function paintQr(text, target = canvas) {
+  const bytes = encoder.encode(text), ptr = support._malloc(bytes.length + 1);
+  try {
+    support.HEAPU8.set(bytes, ptr);
+    support.HEAPU8[ptr + bytes.length] = 0;
+    const size = support._qr_start(ptr);
+    if (!size) throw new Error("URフレームをQRに変換できませんでした。");
+    const ctx = target.getContext("2d");
+    const quiet = 4, scale = Math.floor(target.width / (size + quiet * 2)), offset = Math.floor((target.width - scale * (size + quiet * 2)) / 2);
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, target.width, target.height);
+    ctx.fillStyle = "#000";
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      if (!support._qr_module(x, y)) continue;
+      ctx.fillRect(offset + (x + quiet) * scale, offset + (y + quiet) * scale, scale, scale);
+    }
+  } finally {
+    support._free(ptr);
+  }
+}
+
+let frameTimer = null, unsignedPsbt = null, animation = null, activeTransaction = null;
+renderOnboarding();
+
+function signerModule() {
+  return signerFrame.contentWindow?.Module || null;
+}
+
+function setSeedSettingsLocked(locked) {
+  seedQrFile.disabled = locked;
+  useCustomSeedButton.disabled = locked || !customSeedUrl;
+  useDemoSeedButton.disabled = locked;
+}
+
+function clearCustomSeedImage() {
+  if (customSeedUrl) URL.revokeObjectURL(customSeedUrl);
+  customSeedUrl = null;
+  customSeedImage.removeAttribute("src");
+  customSeedImage.hidden = true;
+  seedQrFile.value = "";
+  useCustomSeedButton.disabled = true;
+}
+
+function setSeedCameraTarget(target) {
+  cameraQrId = target;
+  const module = signerModule();
+  if (module) module.cameraQrId = target;
+  updateCameraBeam();
+}
+
+function useDemoSeed() {
+  if (wallet) {
+    seedSettingsStatus.textContent = translateUiText("別のシードを使うにはページを再読み込みしてください。", pageLanguage);
+    return;
+  }
+  seedMode = "demo";
+  sourceInput.value = DEFAULT_SOURCE_ADDRESS;
+  refreshBalanceButton.disabled = false;
+  copySourceButton.disabled = false;
+  clearCustomSeedImage();
+  seedCanvas.hidden = false;
+  seedQrTitle.textContent = translateUiText("SeedQR (Demo)", pageLanguage);
+  seedQrHint.textContent = translateUiText("署名器で「Scan SeedQR」を選ぶと、HWWの仮想カメラがこのQRを読み取ります。", pageLanguage);
+  seedQrStatus.textContent = translateUiText("公開テストシードです。価値のあるコインには使用しないでください。", pageLanguage);
+  seedSettingsStatus.textContent = translateUiText("公開デモSeedQRを使用中です。", pageLanguage);
+  paintQr(TEST_SEEDQR, seedCanvas);
+  setSeedCameraTarget("seed-qr");
+  walletBalance.textContent = "— BTC";
+  walletBalanceHint.textContent = translateUiText("Signet残高を照会しています…", pageLanguage);
+  checkFunding(DEFAULT_SOURCE_ADDRESS);
+  renderOnboarding();
+}
+
+function useCustomSeed() {
+  if (wallet) {
+    seedSettingsStatus.textContent = translateUiText("別のシードを使うにはページを再読み込みしてください。", pageLanguage);
+    return;
+  }
+  if (!customSeedUrl || !customSeedImage.naturalWidth) return;
+  seedMode = "custom";
+  sourceInput.value = "";
+  refreshBalanceButton.disabled = true;
+  copySourceButton.disabled = true;
+  confirmedUtxoCount = null;
+  fundingLookupFailed = false;
+  walletBalance.textContent = "— BTC";
+  walletBalanceHint.textContent = translateUiText("SeedQR読み込み後に照会します", pageLanguage);
+  seedCanvas.hidden = true;
+  customSeedImage.hidden = false;
+  seedQrTitle.textContent = translateUiText("選択したカスタムSeedQR · テスト用", pageLanguage);
+  seedQrHint.textContent = translateUiText("選択したテスト用SeedQRをSignerでスキャンしてください。", pageLanguage);
+  seedQrStatus.textContent = translateUiText("ブラウザ版ではテスト用シードだけを使用してください。実際の資産には使わないでください。", pageLanguage);
+  seedSettingsStatus.textContent = translateUiText("選択したテスト用SeedQRをSignerでスキャンしてください。", pageLanguage);
+  setSeedCameraTarget("custom-seed-qr");
+  renderOnboarding();
+}
+
+seedQrFile.addEventListener("change", async () => {
+  const file = seedQrFile.files?.[0];
+  if (!file) return;
+  if (wallet) {
+    seedSettingsStatus.textContent = translateUiText("別のシードを使うにはページを再読み込みしてください。", pageLanguage);
+    seedQrFile.value = "";
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    seedSettingsStatus.textContent = translateUiText("SeedQR PNGは10 MB以下にしてください。", pageLanguage);
+    seedQrFile.value = "";
+    return;
+  }
+  const signature = [...new Uint8Array(await file.slice(0, 8).arrayBuffer())].join(",");
+  if ((file.type && file.type !== "image/png") || !file.size || signature !== "137,80,78,71,13,10,26,10") {
+    seedSettingsStatus.textContent = translateUiText("PNG形式のSeedQR画像を選択してください。", pageLanguage);
+    seedQrFile.value = "";
+    return;
+  }
+  clearCustomSeedImage();
+  customSeedUrl = URL.createObjectURL(file);
+  customSeedImage.onload = () => {
+    if (!customSeedUrl || customSeedImage.src !== customSeedUrl) return;
+    useCustomSeedButton.disabled = false;
+    seedSettingsStatus.textContent = translateUiText("SeedQR画像を読み込みました。使う場合はボタンを押してください。", pageLanguage);
+  };
+  customSeedImage.onerror = () => {
+    clearCustomSeedImage();
+    seedSettingsStatus.textContent = translateUiText("選択したSeedQR画像を読み込めませんでした。画像を選び直してください。", pageLanguage);
+  };
+  customSeedImage.src = customSeedUrl;
+  seedQrFile.value = "";
+});
+useCustomSeedButton.addEventListener("click", useCustomSeed);
+useDemoSeedButton.addEventListener("click", useDemoSeed);
+
+function walletCameraLensPoint() {
+  const rect = walletCameraLens.getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+function walletCameraFrameRect() {
+  const rect = walletCameraFrame.getBoundingClientRect();
+  return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+}
+
+function drawSignerCameraFrame(target) {
+  const lcd = signerFrame.contentDocument?.getElementById("lcd");
+  const screen = signerLcdRect(), view = walletCameraFrameRect();
+  if (!lcd || !screen || !view.width || !view.height) return false;
+  const context = target.getContext("2d", { willReadFrequently: true });
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, target.width, target.height);
+  const left = Math.max(screen.left, view.left), top = Math.max(screen.top, view.top);
+  const right = Math.min(screen.left + screen.width, view.left + view.width);
+  const bottom = Math.min(screen.top + screen.height, view.top + view.height);
+  if (right <= left || bottom <= top) return true;
+  context.imageSmoothingEnabled = false;
+  context.drawImage(lcd,
+    (left - screen.left) / screen.width * lcd.width,
+    (top - screen.top) / screen.height * lcd.height,
+    (right - left) / screen.width * lcd.width,
+    (bottom - top) / screen.height * lcd.height,
+    (left - view.left) / view.width * target.width,
+    (top - view.top) / view.height * target.height,
+    (right - left) / view.width * target.width,
+    (bottom - top) / view.height * target.height);
+  return true;
+}
+
+function updateWalletCameraFrame() {
+  const flow = walletLaptop.parentElement.getBoundingClientRect();
+  const laptop = walletLaptop.getBoundingClientRect();
+  const lens = walletCameraLensPoint();
+  const stacked = window.matchMedia("(max-width: 1080px)").matches;
+  const width = Math.min(426.67, flow.width);
+  const left = stacked
+    ? Math.max(flow.left, Math.min(flow.right - width, lens.x - width / 2))
+    : laptop.right + 12;
+  const top = stacked ? laptop.bottom + 124 : lens.y + 80;
+  walletCameraFrame.style.left = `${left - flow.left}px`;
+  walletCameraFrame.style.top = `${top - flow.top}px`;
+  walletCameraFrame.style.width = `${width}px`;
+  walletCameraFrame.style.height = `${width * 0.75}px`;
+}
+
+function showWalletScreen(id) {
+  walletScreens.forEach(screen => { screen.hidden = screen.id !== id; });
+  renderOnboarding();
+  requestAnimationFrame(updateCameraBeam);
+}
+
+function renderOnboarding() {
+  const screen = walletScreens.find(item => !item.hidden)?.id;
+  let step = 1, instruction;
+  if (broadcasted) {
+    step = 5;
+    onboardingTitle.textContent = translateUiText("送金が完了しました", pageLanguage);
+    onboardingCount.textContent = translateUiText("完了", pageLanguage);
+    instruction = "取引をSignetに送信しました。下のTXIDリンクからブロックエクスプローラーで確認できます。";
+  } else {
+    onboardingTitle.textContent = translateUiText("送金の流れ", pageLanguage);
+    if (!wallet) {
+      step = 1;
+      instruction = seedMode === "custom"
+        ? "選択したテスト用SeedQRをSignerでスキャンしてください。"
+        : "HWWの方向キーで「Scan SeedQR」を選び、OKを押します。HWWのレンズを上の紙SeedQRに向けてください。";
+    } else if (!source && sourceChecking) {
+      step = 1;
+      instruction = seedMode === "custom"
+        ? "選択したSeedQRの送金元アドレスを照合しています。完了を待ってください。"
+        : "公開デモSeedQRの送金元アドレスを照合しています。完了を待ってください。";
+    } else if (!source) {
+      step = 1;
+      instruction = "選択したSeedQRのアドレスが署名器の公開情報と一致しません。SeedQRを読み込み直してください。";
+    } else if (rawTransaction) {
+      step = 4;
+      instruction = broadcastPending
+        ? "Signetへ送信しています。ネットワークの応答を待ってください。"
+        : "署名済み取引の送金先・金額・手数料をもう一度確認してください。問題がなければ「signetへブロードキャスト」を押します。";
+    } else if (activeTransaction) {
+      step = 3;
+      instruction = walletScanActive
+        ? "HWWに表示された送金先・金額・手数料を確認し、ボタンで署名してください。署名済みQRがPCカメラの枠に入ると、Walletが自動で読み取り検証します。"
+        : "先にWalletの「Walletカメラを起動」を押します。次にHWWで「Scan PSBT」を選び、HWWカメラをWalletの動くQRへ向けてください。HWWに表示された送金先・金額・手数料を確認して署名します。";
+    } else {
+      step = 2;
+      if (fundingLookupFailed) instruction = "確定残高を取得できませんでした。ネットワーク接続を確認し、「残高を再確認」を押してください。";
+      else if (confirmedUtxoCount === 0) instruction = "この送金元アドレスには確定UTXOがありません。Signetテストコインを用意し、承認後に「残高を再確認」を押してください。";
+      else if (confirmedUtxoCount === null) instruction = "送金元アドレスの一致を確認しました。確定UTXOを照会しています。完了まで待ってください。";
+      else if (screen === "wallet-screen-compose") instruction = "送金先アドレス、BTC金額、手数料率を入力し、内容を確認して「PSBTを作成」を押してください。";
+      else instruction = "送金元アドレスと確定残高を確認し、「送金内容へ」を押してください。確定UTXOが0件なら、先にSignetテストコインを用意します。";
+    }
+    onboardingCount.textContent = translateUiText(`ステップ ${step} / 4`, pageLanguage);
+  }
+  onboardingInstruction.textContent = translateUiText(instruction, pageLanguage);
+  onboardingSteps.forEach(item => {
+    const itemStep = Number(item.dataset.onboardingStep);
+    const state = itemStep < step ? "done" : itemStep === step ? "current" : "upcoming";
+    item.dataset.state = state;
+    if (state === "current") item.setAttribute("aria-current", "step");
+    else item.removeAttribute("aria-current");
+  });
+}
+
+function signerLcdRect() {
+  const lcd = signerFrame.contentDocument?.getElementById("lcd"), child = signerFrame.contentWindow;
+  if (!lcd || !child) return null;
+  const frame = signerFrame.getBoundingClientRect(), rect = lcd.getBoundingClientRect();
+  return {
+    left: frame.left + signerFrame.clientLeft + rect.left * signerFrame.clientWidth / child.innerWidth,
+    top: frame.top + signerFrame.clientTop + rect.top * signerFrame.clientHeight / child.innerHeight,
+    width: rect.width * signerFrame.clientWidth / child.innerWidth,
+    height: rect.height * signerFrame.clientHeight / child.innerHeight,
+  };
+}
+
+function signerCameraGeometry() {
+  const lensElement = signerFrame.contentDocument?.getElementById("camera-lens");
+  const child = signerFrame.contentWindow;
+  if (!lensElement || !child?.innerWidth || !child.innerHeight) return null;
+  const frame = signerFrame.getBoundingClientRect(), lensRect = lensElement.getBoundingClientRect();
+  const scaleX = signerFrame.clientWidth / child.innerWidth, scaleY = signerFrame.clientHeight / child.innerHeight;
+  const lens = {
+    x: frame.left + signerFrame.clientLeft + (lensRect.left + lensRect.width / 2) * scaleX,
+    y: frame.top + signerFrame.clientTop + (lensRect.top + lensRect.height / 2) * scaleY,
+  };
+  const width = 320 * scaleX, height = 240 * scaleY;
+  return { lens, view: { left: lens.x - width - 12 * scaleX, top: lens.y - height / 2, width, height } };
+}
+
+function drawCameraSubject(rect, aligned) {
+  if (!rect?.width || !rect.height) {
+    beamSubjectHalo.setAttribute("visibility", "hidden");
+    beamSubject.setAttribute("visibility", "hidden");
+    beamSubjectLabelBg.setAttribute("visibility", "hidden");
+    beamSubjectLabel.setAttribute("visibility", "hidden");
+    return;
+  }
+  const color = aligned ? "#00a65a" : "#f0a900";
+  const label = "読み取り対象";
+  const labelWidth = 82;
+  const labelX = Math.max(4, Math.min(rect.left, window.innerWidth - labelWidth - 4));
+  const labelY = Math.max(20, rect.top - 7);
+  beamSubjectHalo.setAttribute("visibility", "visible");
+  beamSubjectHalo.setAttribute("x", rect.left); beamSubjectHalo.setAttribute("y", rect.top);
+  beamSubjectHalo.setAttribute("width", rect.width); beamSubjectHalo.setAttribute("height", rect.height);
+  beamSubject.setAttribute("visibility", "visible");
+  beamSubject.setAttribute("x", rect.left); beamSubject.setAttribute("y", rect.top);
+  beamSubject.setAttribute("width", rect.width); beamSubject.setAttribute("height", rect.height);
+  cameraBeam.style.setProperty("--subject-color", color);
+  cameraBeam.style.setProperty("--subject-fill", aligned ? "rgba(0,166,90,.14)" : "rgba(240,169,0,.13)");
+  beamSubjectLabelBg.setAttribute("visibility", "visible");
+  beamSubjectLabelBg.setAttribute("x", labelX); beamSubjectLabelBg.setAttribute("y", labelY - 19);
+  beamSubjectLabelBg.setAttribute("width", labelWidth); beamSubjectLabelBg.setAttribute("height", 22);
+  beamSubjectLabel.setAttribute("visibility", "visible");
+  beamSubjectLabel.setAttribute("x", labelX + 7); beamSubjectLabel.setAttribute("y", labelY - 4);
+  beamSubjectLabel.textContent = label;
+}
+
+function drawCameraBeam(lens, view, aligned, label, walletCamera = false) {
+  if (!view?.width || !view.height) return;
+  const x = lens.x, y = lens.y;
+  const color = aligned ? "#00a65a" : "#f0a900";
+  cameraBeam.classList.toggle("wallet-camera-scan", walletCamera);
+  cameraBeam.removeAttribute("hidden");
+  cameraBeam.setAttribute("viewBox", `0 0 ${window.innerWidth} ${window.innerHeight}`);
+  cameraBeam.style.setProperty("--beam-color", color);
+  cameraBeam.style.setProperty("--beam-fill", aligned ? "rgba(0,166,90,.2)" : "rgba(240,169,0,.2)");
+  cameraBeam.style.setProperty("--target-fill", aligned ? "rgba(0,166,90,.16)" : "rgba(240,169,0,.15)");
+  beamCone.setAttribute("points", `${x},${y} ${view.left},${view.top} ${view.left + view.width},${view.top} ${view.left + view.width},${view.top + view.height} ${view.left},${view.top + view.height}`);
+  beamAxis.setAttribute("x1", x); beamAxis.setAttribute("y1", y);
+  beamAxis.setAttribute("x2", view.left + view.width / 2); beamAxis.setAttribute("y2", view.top + view.height / 2);
+  beamOrigin.setAttribute("cx", x); beamOrigin.setAttribute("cy", y); beamOrigin.setAttribute("fill", color);
+  beamTarget.setAttribute("x", view.left); beamTarget.setAttribute("y", view.top);
+  beamTarget.setAttribute("width", view.width); beamTarget.setAttribute("height", view.height);
+  const labelWidth = Math.max(146, label.length * 8 + 16);
+  beamViewLabelBg.setAttribute("x", view.left + 7); beamViewLabelBg.setAttribute("y", view.top + 7);
+  beamViewLabelBg.setAttribute("width", labelWidth); beamViewLabelBg.setAttribute("height", 26);
+  beamViewLabel.setAttribute("x", view.left + 15); beamViewLabel.setAttribute("y", view.top + 25);
+  beamViewLabel.textContent = label;
+}
+
+function updateCameraBeam() {
+  updateWalletCameraFrame();
+  const module = signerModule();
+  if (walletScanActive) {
+    const subject = signerLcdRect(), view = walletCameraFrameRect();
+    if (!subject || !view.width || !view.height) {
+      cameraBeam.setAttribute("hidden", "");
+      return;
+    }
+    const aligned = subject.left >= view.left && subject.top >= view.top
+      && subject.left + subject.width <= view.left + view.width
+      && subject.top + subject.height <= view.top + view.height;
+    drawCameraBeam(walletCameraLensPoint(), view, aligned, "PCカメラ 照射範囲", true);
+    drawCameraSubject(subject, aligned);
+    scanStatus.textContent = aligned
+      ? "署名器の画面がWalletカメラの枠内です。署名後にQRを読み取ります。"
+      : "PCカメラの枠内に署名器の画面が入るよう、WalletかHWWを動かしてください。";
+    return;
+  }
+  if (signedHandled || !hwwCameraScanning) {
+    cameraBeam.setAttribute("hidden", "");
+    return;
+  }
+  const geometry = signerCameraGeometry();
+  const qr = document.getElementById(cameraQrId);
+  if (!geometry || !qr?.getClientRects().length) {
+    cameraBeam.setAttribute("hidden", "");
+    module?.setCameraStatus?.("仮想カメラ · 照準内の画面を表示します");
+    return;
+  }
+  const { view, lens } = geometry;
+  const qrRect = qr.getBoundingClientRect();
+  if (!view?.width || !view.height || !qrRect.width || !qrRect.height) return;
+  const aligned = qrRect.left >= view.left - 2 && qrRect.top >= view.top - 2
+    && qrRect.right <= view.left + view.width + 2 && qrRect.bottom <= view.top + view.height + 2;
+  drawCameraBeam(lens, view, aligned, "HWWカメラ 照射範囲");
+  drawCameraSubject(qrRect, aligned);
+  const qrName = cameraQrId.includes("seed") ? "SeedQR" : "PSBT QR";
+  module?.setCameraStatus?.(aligned ? `${qrName}が照準内 · 周囲の画面も映っています` : "照準中 · ウォレットかHWWを動かしてください");
+}
+
+function setHwwCameraScanning(active) {
+  const starting = active && !hwwCameraScanning;
+  hwwCameraScanning = active;
+  if (starting) signerModule()?.resetParentScene?.();
+  updateCameraBeam();
+}
+
+function setHwwOffset(x, y) {
+  hwwOffset = { x, y };
+  hwwWindow.style.transform = `translate(${x}px, ${y}px)`;
+  updateCameraBeam();
+}
+
+function beginHwwDrag({ pointerId, point }) {
+  const rect = hwwWindow.getBoundingClientRect(), parent = hwwWindow.parentElement.getBoundingClientRect();
+  hwwDrag = { pointerId, x: point.x, y: point.y, offset: { ...hwwOffset }, rect, parent };
+  hwwWindow.classList.add("dragging");
+}
+
+function moveHwwDrag({ pointerId, point }) {
+  if (!hwwDrag || pointerId !== hwwDrag.pointerId) return;
+  const baseLeft = hwwDrag.rect.left - hwwDrag.offset.x, baseTop = hwwDrag.rect.top - hwwDrag.offset.y;
+  const x = Math.max(hwwDrag.parent.left - hwwDrag.rect.width * .75 - baseLeft,
+    Math.min(hwwDrag.parent.right - hwwDrag.rect.width * .25 - baseLeft, hwwDrag.offset.x + point.x - hwwDrag.x));
+  const y = Math.max(hwwDrag.parent.top - hwwDrag.rect.height * .75 - baseTop,
+    Math.min(hwwDrag.parent.bottom - hwwDrag.rect.height * .25 - baseTop, hwwDrag.offset.y + point.y - hwwDrag.y));
+  setHwwOffset(x, y);
+}
+
+function endHwwDrag({ pointerId }) {
+  if (!hwwDrag || pointerId !== hwwDrag.pointerId) return;
+  hwwDrag = null;
+  hwwWindow.classList.remove("dragging");
+}
+
+function moveHwwByKey({ x, y }) {
+  const rect = hwwWindow.getBoundingClientRect(), parent = hwwWindow.parentElement.getBoundingClientRect();
+  const baseLeft = rect.left - hwwOffset.x, baseTop = rect.top - hwwOffset.y;
+  setHwwOffset(
+    Math.max(parent.left - rect.width * .75 - baseLeft, Math.min(parent.right - rect.width * .25 - baseLeft, hwwOffset.x + x)),
+    Math.max(parent.top - rect.height * .75 - baseTop, Math.min(parent.bottom - rect.height * .25 - baseTop, hwwOffset.y + y)),
+  );
+}
+
+function bytesToHex(bytes) {
+  return [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function equalBytes(a, b) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+function readCompact(bytes, cursor) {
+  if (cursor.offset >= bytes.length) throw new Error("取引データが途中で切れています。");
+  const tag = bytes[cursor.offset++];
+  if (tag < 253) return tag;
+  if (tag === 253) {
+    if (cursor.offset + 2 > bytes.length) throw new Error("取引データが途中で切れています。");
+    const n = bytes[cursor.offset] | bytes[cursor.offset + 1] << 8;
+    cursor.offset += 2;
+    return n;
+  }
+  if (tag === 254) {
+    if (cursor.offset + 4 > bytes.length) throw new Error("取引データが途中で切れています。");
+    const n = new DataView(bytes.buffer, bytes.byteOffset + cursor.offset, 4).getUint32(0, true);
+    cursor.offset += 4;
+    return n;
+  }
+  if (cursor.offset + 8 > bytes.length) throw new Error("取引データが途中で切れています。");
+  const n = new DataView(bytes.buffer, bytes.byteOffset + cursor.offset, 8).getBigUint64(0, true);
+  cursor.offset += 8;
+  if (n > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("取引データの長さが大きすぎます。");
+  return Number(n);
+}
+
+function readPsbtMap(bytes, cursor) {
+  const map = new Map();
+  for (;;) {
+    const keyLen = readCompact(bytes, cursor);
+    if (!keyLen) return map;
+    if (keyLen > bytes.length - cursor.offset) throw new Error("PSBTのkeyが途中で切れています。");
+    const key = bytes.slice(cursor.offset, cursor.offset + keyLen);
+    cursor.offset += keyLen;
+    const valueLen = readCompact(bytes, cursor);
+    if (valueLen > bytes.length - cursor.offset) throw new Error("PSBTのvalueが途中で切れています。");
+    const keyHex = bytesToHex(key);
+    if (map.has(keyHex)) throw new Error("PSBTに重複したkeyがあります。");
+    map.set(keyHex, bytes.slice(cursor.offset, cursor.offset + valueLen));
+    cursor.offset += valueLen;
+  }
+}
+
+function parseUnsignedTransaction(bytes) {
+  const cursor = { offset: 0 };
+  if (bytes.length < 10) throw new Error("unsigned transactionが短すぎます。");
+  const version = bytes.slice(0, 4);
+  cursor.offset = 4;
+  const inputCount = readCompact(bytes, cursor);
+  const inputs = [];
+  for (let i = 0; i < inputCount; i++) {
+    if (cursor.offset + 36 > bytes.length) throw new Error("transaction inputが途中で切れています。");
+    const outpoint = bytes.slice(cursor.offset, cursor.offset + 36);
+    cursor.offset += 36;
+    const scriptLen = readCompact(bytes, cursor);
+    if (scriptLen !== 0 || cursor.offset + scriptLen + 4 > bytes.length) throw new Error("P2WPKH inputのscriptSigが不正です。");
+    cursor.offset += scriptLen;
+    const sequence = bytes.slice(cursor.offset, cursor.offset + 4);
+    cursor.offset += 4;
+    inputs.push({ raw: concat([outpoint, Uint8Array.of(0), sequence]), sequence });
+  }
+  const outputCount = readCompact(bytes, cursor);
+  const outputs = [];
+  for (let i = 0; i < outputCount; i++) {
+    const start = cursor.offset;
+    if (cursor.offset + 8 > bytes.length) throw new Error("transaction outputが途中で切れています。");
+    cursor.offset += 8;
+    const scriptLen = readCompact(bytes, cursor);
+    if (scriptLen > bytes.length - cursor.offset) throw new Error("transaction output scriptが途中で切れています。");
+    cursor.offset += scriptLen;
+    outputs.push(bytes.slice(start, cursor.offset));
+  }
+  if (cursor.offset + 4 !== bytes.length) throw new Error("unsigned transactionの末尾が不正です。");
+  return { version, inputs, outputs, locktime: bytes.slice(cursor.offset) };
+}
+
+function parseWitnessUtxo(bytes) {
+  const cursor = { offset: 8 };
+  if (bytes.length < 9) throw new Error("witness UTXOが短すぎます。");
+  const value = new DataView(bytes.buffer, bytes.byteOffset, 8).getBigUint64(0, true);
+  const scriptLen = readCompact(bytes, cursor);
+  if (cursor.offset + scriptLen !== bytes.length) throw new Error("witness UTXOのscript長が不正です。");
+  return { value, script: bytes.slice(cursor.offset) };
+}
+
+function finalizeSignedPsbt(psbt, key, expectedTx) {
+  if (!equalBytes(psbt.slice(0, 5), Uint8Array.of(0x70, 0x73, 0x62, 0x74, 0xff))) throw new Error("署名器からPSBTを受け取れませんでした。");
+  const cursor = { offset: 5 }, global = readPsbtMap(psbt, cursor), unsignedTx = global.get("00");
+  if (!unsignedTx || !equalBytes(unsignedTx, expectedTx)) throw new Error("署名済みPSBTの取引内容が作成時から変わっています。");
+  const tx = parseUnsignedTransaction(unsignedTx);
+  if (tx.inputs.length !== 1 || tx.outputs.length < 1) throw new Error("このページはP2WPKHの1入力取引だけを確定できます。");
+  const inputMaps = Array.from({ length: tx.inputs.length }, () => readPsbtMap(psbt, cursor));
+  for (let i = 0; i < tx.outputs.length; i++) readPsbtMap(psbt, cursor);
+  if (cursor.offset !== psbt.length) throw new Error("PSBTに未対応の余分なデータがあります。");
+  const input = inputMaps[0], witnessBytes = input.get("01");
+  if (!witnessBytes) throw new Error("署名済みPSBTにwitness UTXOがありません。");
+  const witnessUtxo = parseWitnessUtxo(witnessBytes);
+  if (witnessUtxo.value !== activeTransaction.utxo.value || !equalBytes(witnessUtxo.script, key.script))
+    throw new Error("署名済みPSBTの入力が送金元と一致しません。");
+  const signatureEntry = [...input].find(([id]) => id.length === 68 && id.startsWith("02"));
+  if (!signatureEntry) throw new Error("署名が見つかりません。");
+  const pubkey = hex(signatureEntry[0].slice(2)), signature = signatureEntry[1];
+  if (!equalBytes(pubkey, key.pubkey) || signature.length < 9 || signature.at(-1) !== 1)
+    throw new Error("P2WPKH署名が送金元の公開鍵と一致しません。");
+  const witness = concat([compact(2), compact(signature.length), signature, compact(pubkey.length), pubkey]);
+  const raw = concat([tx.version, Uint8Array.of(0, 1), compact(tx.inputs.length), ...tx.inputs.map(i => i.raw),
+    compact(tx.outputs.length), ...tx.outputs, witness, tx.locktime]);
+  return { raw, tx };
+}
+
+async function transactionId(tx) {
+  const stripped = concat([tx.version, compact(tx.inputs.length), ...tx.inputs.map(i => i.raw),
+    compact(tx.outputs.length), ...tx.outputs, tx.locktime]);
+  const first = await crypto.subtle.digest("SHA-256", stripped);
+  const second = new Uint8Array(await crypto.subtle.digest("SHA-256", first));
+  return bytesToHex(second.reverse());
+}
+
+function stopWalletScan(message = "") {
+  walletScanActive = false;
+  clearTimeout(receiveScanTimer);
+  receiveScanTimer = null;
+  scanButton.textContent = "Walletカメラを起動";
+  if (message) scanStatus.textContent = message;
+  renderOnboarding();
+  updateCameraBeam();
+}
+
+async function handleSignedPsbt(psbt) {
+  if (signedHandled) return;
+  signedHandled = true;
+  stopWalletScan("署名済みPSBTを受信しました。取引内容を検証しています…");
+  try {
+    signedPsbt = psbt;
+    const finalized = finalizeSignedPsbt(signedPsbt, activeTransaction.source, activeTransaction.unsignedTx);
+    rawTransaction = finalized.raw;
+    const txid = await transactionId(finalized.tx);
+    document.getElementById("signed-details").textContent =
+      `署名済みPSBTを受信しました。\n送金額: ${formatBtc(activeTransaction.amount)} BTC\n` +
+      `送金先: ${activeTransaction.destination}\n手数料: ${activeTransaction.fee} sat\n` +
+      `txid: ${txid}\nraw transaction: ${rawTransaction.length} bytes`;
+    signedResult.hidden = false;
+    broadcastButton.disabled = false;
+    scanButton.disabled = true;
+    scanButton.textContent = "署名済みPSBTを受信しました";
+    scanStatus.textContent = "署名済みPSBTを受信し、送金内容と署名を検証しました。";
+    showWalletScreen("wallet-screen-broadcast");
+  } catch (error) {
+    signedHandled = false;
+    scanButton.disabled = false;
+    scanStatus.textContent = `署名済み取引を検証できません: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+async function scanSignedFrame(seen = new Set()) {
+  if (!walletScanActive) return;
+  try {
+    const module = signerModule();
+    if (!module?.ready) {
+      scanStatus.textContent = "Signerの画面を準備しています。";
+      receiveScanTimer = setTimeout(() => scanSignedFrame(seen), 120);
+      return;
+    }
+    const captured = module.captureParentView?.(walletCameraFrameRect(), receivePreview) || false;
+    if (!captured && !module?.parentSceneFailed?.()) {
+      scanStatus.textContent = "PCカメラ映像を準備しています。映像はWalletの位置に追従します。";
+      receiveScanTimer = setTimeout(() => scanSignedFrame(seen), 120);
+      return;
+    }
+    if (!captured) {
+      stopWalletScan(`PCカメラ映像を取得できません: ${module.parentSceneError?.() || "ページ表示の合成に失敗しました。"}`);
+      return;
+    }
+    receiveDecodeContext.imageSmoothingEnabled = false;
+    if (!drawSignerCameraFrame(receiveDecodeCanvas)) throw new Error("Signer画面をPCカメラ範囲から取得できません。");
+    let text = null;
+    if (qrDetector) {
+      const codes = await qrDetector.detect(receiveDecodeCanvas).catch(() => []);
+      if (codes.length) text = codes[0].rawValue;
+    }
+    if (!text && window.jsQR) {
+      const image = receiveDecodeContext.getImageData(0, 0, receiveDecodeCanvas.width, receiveDecodeCanvas.height);
+      text = window.jsQR(image.data, image.width, image.height)?.data || null;
+    }
+    if (text?.startsWith("UR:")) {
+      const completed = parser.urReceive(text);
+      const part = text.match(/\/(\d+)-(\d+)\//);
+      if (part) seen.add(part[1]);
+      scanStatus.textContent = part
+        ? `署名済みPSBTを読み取り中 · ${seen.size}フレーム取得 · UR ${parser.urProgress}`
+        : `署名済みPSBTを読み取り中 · UR ${parser.urProgress}`;
+      if (completed) {
+        if (parser.urKind !== "psbt") throw new Error("署名器からPSBT以外のURを受信しました。");
+        await handleSignedPsbt(completed);
+      }
+    }
+  } catch (error) {
+    scanStatus.textContent = `仮想カメラを利用できません: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  if (walletScanActive) receiveScanTimer = setTimeout(() => scanSignedFrame(seen), 120);
+}
+
+async function checkFunding(address) {
+  if (sourceInput.value.trim().toLowerCase() !== address) return;
+  confirmedUtxoCount = null;
+  fundingLookupFailed = false;
+  walletBalance.textContent = "— BTC";
+  walletBalanceHint.textContent = translateUiText("Signet残高を照会しています…", pageLanguage);
+  try {
+    const response = await fetch(`${API}/address/${encodeURIComponent(address)}/utxo`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const utxos = await response.json();
+    const confirmed = utxos.filter(u => u.status?.confirmed === true && Number.isSafeInteger(u.value) && u.value > 0);
+    const count = confirmed.length;
+    const balance = confirmed.reduce((sum, u) => sum + BigInt(u.value), 0n);
+    if (sourceInput.value.trim().toLowerCase() !== address) return;
+    confirmedUtxoCount = count;
+    fundingLookupFailed = false;
+    walletBalance.textContent = `${formatBtc(balance)} BTC`;
+    walletBalanceHint.textContent = `${count} confirmed UTXO`;
+    if (source?.address === address) walletStatus.textContent = count ? `confirmed UTXO ${count}件を確認しました。送金内容を作成できます。` :
+      "confirmed UTXOがありません。送金元アドレスにSignetテストコインを用意し、承認後に残高を再確認してください。";
+    renderOnboarding();
+  } catch (error) {
+    if (sourceInput.value.trim().toLowerCase() === address) {
+      fundingLookupFailed = true;
+      walletBalanceHint.textContent = translateUiText("残高を取得できませんでした", pageLanguage);
+      if (source?.address === address) walletStatus.textContent = `残高照会に失敗しました: ${error instanceof Error ? error.message : String(error)}`;
+      renderOnboarding();
+    }
+  }
+}
+
+async function loadWalletFromDescriptor(descriptor) {
+  if (wallet && source) return;
+  walletStatus.textContent = "SeedQRから受け取った公開情報を読み込んでいます…";
+  try {
+    const nextWallet = await parseDescriptor(descriptor);
+    const firstReceive = deriveChild(nextWallet, 0, 0);
+    const derivedAddress = encodeP2wpkhAddress(firstReceive.script.slice(2));
+    if (seedMode === "demo" && sourceInput.value.trim().toLowerCase() !== derivedAddress)
+      throw new Error("公開デモSeedQRの送金元アドレスが一致しません。");
+    wallet = nextWallet;
+    sourceInput.value = derivedAddress;
+    result.hidden = true;
+    setSeedSettingsLocked(true);
+    seedSettingsStatus.textContent = translateUiText("SeedQRを読み込みました。別シードに切り替えるにはページを再読み込みしてください。", pageLanguage);
+    const sourceLookup = loadSourceAddress();
+    if (seedMode === "custom" && source) {
+      clearCustomSeedImage();
+      seedCanvas.hidden = true;
+      seedQrTitle.textContent = translateUiText("カスタムSeedQR読み込み済み", pageLanguage);
+      seedQrHint.textContent = translateUiText("SeedQRを読み込むと、署名器の公開情報から送金元アドレスを導出して照合します。", pageLanguage);
+      seedQrStatus.textContent = translateUiText("アドレスをwatch-onlyで確認しています。", pageLanguage);
+    } else {
+      seedQrTitle.textContent = translateUiText("SeedQR (Demo)", pageLanguage);
+    }
+    await sourceLookup;
+  } catch (error) {
+    walletStatus.textContent = error instanceof Error ? error.message : String(error);
+  }
+}
+
+async function loadSourceAddress() {
+  const address = sourceInput.value.trim().toLowerCase();
+  if (!wallet) {
+    if (address) await checkFunding(address);
+    return;
+  }
+  confirmedUtxoCount = null;
+  fundingLookupFailed = false;
+  walletNextCompose.disabled = true;
+  createButton.disabled = true;
+  refreshBalanceButton.disabled = true;
+  copySourceButton.disabled = true;
+  walletBalance.textContent = "— BTC";
+  walletBalanceHint.textContent = translateUiText("Signet残高を照会しています…", pageLanguage);
+  if (!address) {
+    sourceChecking = false;
+    walletStatus.textContent = "送金元アドレスがありません。";
+    renderOnboarding();
+    return;
+  }
+  sourceChecking = true;
+  renderOnboarding();
+  walletStatus.textContent = "送金元アドレスを公開情報と照合しています…";
+  try {
+    const program = decodeP2wpkhAddress(address);
+    const key = findSourcePath(wallet, program);
+    if (!equalBytes(key.script.slice(2), program)) throw new Error("アドレスと公開鍵が一致しません。");
+    source = { ...key, address };
+    sourceChecking = false;
+    refreshBalanceButton.disabled = false;
+    renderOnboarding();
+    walletNextCompose.disabled = false;
+    createButton.disabled = false;
+    copySourceButton.disabled = false;
+    walletStatus.textContent = `公開情報と一致しました（${key.branch ? "change" : "receive"} / index ${key.index}）。残高を照会しています…`;
+    await checkFunding(address);
+  } catch (error) {
+    sourceChecking = false;
+    walletStatus.textContent = error instanceof Error ? error.message : String(error);
+    renderOnboarding();
+  }
+}
+
+try {
+  support = await createSendSupport();
+  const parserBytes = await fetch("./parser.wasm").then(r => {
+    if (!r.ok) throw new Error("parser.wasm を読み込めません。");
+    return r.arrayBuffer();
+  });
+  parser = await Parser.load(parserBytes, { sha256: PARSER_SHA256 });
+  try { if ("BarcodeDetector" in window) qrDetector = new BarcodeDetector({ formats: ["qr_code"] }); } catch {}
+  destinationInput.value = DEFAULT_DESTINATION;
+  paintQr(TEST_SEEDQR, seedCanvas);
+  qrActions.hidden = true;
+  walletLaptop.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || event.target.closest("button,input,textarea,select,a,label,summary,[contenteditable='true']")) return;
+    walletDrag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY,
+      offset: { ...walletOffset }, rect: walletLaptop.getBoundingClientRect(), parent: walletLaptop.parentElement.getBoundingClientRect() };
+    walletLaptop.setPointerCapture(event.pointerId);
+    walletLaptop.classList.add("dragging");
+  });
+  walletLaptop.addEventListener("pointermove", event => {
+    if (!walletDrag || event.pointerId !== walletDrag.pointerId) return;
+    const baseLeft = walletDrag.rect.left - walletDrag.offset.x;
+    const minX = walletDrag.parent.left - walletDrag.rect.width * .75 - baseLeft;
+    const maxX = walletDrag.parent.right - walletDrag.rect.width * .25 - baseLeft;
+    const minY = -400, maxY = 400;
+    walletOffset = {
+      x: Math.max(minX, Math.min(maxX, walletDrag.offset.x + event.clientX - walletDrag.x)),
+      y: Math.max(minY, Math.min(maxY, walletDrag.offset.y + event.clientY - walletDrag.y)),
+    };
+    walletLaptop.style.transform = `translate(${walletOffset.x}px, ${walletOffset.y}px)`;
+    updateCameraBeam();
+  });
+  const endWalletDrag = event => {
+    if (!walletDrag || event.pointerId !== walletDrag.pointerId) return;
+    walletDrag = null;
+    walletLaptop.classList.remove("dragging");
+  };
+  walletLaptop.addEventListener("pointerup", endWalletDrag);
+  walletLaptop.addEventListener("pointercancel", endWalletDrag);
+  const readyTimer = setInterval(() => {
+    const module = signerModule();
+    if (module?.ready) {
+      clearInterval(readyTimer);
+      cameraQrId = seedMode === "custom" ? "custom-seed-qr" : "seed-qr";
+      module.cameraQrId = cameraQrId;
+      module.onHwwDragStart = beginHwwDrag;
+      module.onHwwDragMove = moveHwwDrag;
+      module.onHwwDragEnd = endHwwDrag;
+      module.onHwwNudge = moveHwwByKey;
+      module.onWalletDescriptor = loadWalletFromDescriptor;
+      module.onCameraScanState = setHwwCameraScanning;
+      walletStatus.textContent = "署名器の準備ができました。「Scan SeedQR」を選んでください。";
+      updateCameraBeam();
+      if (module.walletDescriptor) loadWalletFromDescriptor(module.walletDescriptor);
+    }
+    updateCameraBeam();
+  }, 100);
+  signerFrame.addEventListener("load", updateCameraBeam);
+  window.addEventListener("resize", updateCameraBeam);
+  window.addEventListener("scroll", updateCameraBeam, true);
+
+  copySourceButton.addEventListener("click", async () => {
+    const address = sourceInput.value.trim();
+    if (!address) return;
+    await navigator.clipboard.writeText(address);
+    walletStatus.textContent = "送金元アドレスをコピーしました。";
+  });
+  refreshBalanceButton.addEventListener("click", loadSourceAddress);
+  checkFunding(DEFAULT_SOURCE_ADDRESS);
+  walletNextCompose.addEventListener("click", () => showWalletScreen("wallet-screen-compose"));
+  document.getElementById("wallet-back-address").addEventListener("click", () => showWalletScreen("wallet-screen-address"));
+  document.getElementById("wallet-back-compose").addEventListener("click", () => showWalletScreen("wallet-screen-compose"));
+  document.getElementById("wallet-back-psbt").addEventListener("click", () => showWalletScreen("wallet-screen-psbt"));
+
+  scanButton.addEventListener("click", () => {
+    if (walletScanActive) {
+      stopWalletScan("Walletカメラを停止しました。");
+      return;
+    }
+    if (!activeTransaction) return;
+    parser.urReset();
+    signedHandled = false;
+    walletScanActive = true;
+    scanButton.textContent = "スキャンを停止";
+    receivePreview.width = 320; receivePreview.height = 240;
+    receiveDecodeCanvas.width = 640; receiveDecodeCanvas.height = 480;
+    receiveContext.imageSmoothingEnabled = false;
+    signerModule()?.resetParentScene?.();
+    updateCameraBeam();
+    renderOnboarding();
+    scanStatus.textContent = "PCカメラ映像を準備しています。Walletを動かすと照準範囲も移動します。";
+    scanSignedFrame();
+  });
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    stopWalletScan();
+    clearInterval(frameTimer); frameTimer = null; animation = null;
+    createButton.disabled = true; downloadButton.disabled = true; toggleButton.disabled = true;
+    signedHandled = false; signedPsbt = null; rawTransaction = null; activeTransaction = null;
+    broadcastPending = false;
+    broadcasted = false;
+    scanButton.disabled = true; scanButton.textContent = "Walletカメラを起動";
+    scanStatus.textContent = "PSBT作成後にスキャンできます。";
+    signedResult.hidden = true; broadcastButton.disabled = true; broadcastStatus.textContent = "";
+    statusEl.textContent = "送金元UTXOを確認し、PSBTを組み立てています…";
+    try {
+      if (!wallet || !source) throw new Error("先にウォレットを読み込んでください。");
+      const sourceAddress = sourceInput.value.trim().toLowerCase();
+      const destinationAddress = destinationInput.value.trim();
+      let sourceProgram, destinationProgram;
+      try { sourceProgram = decodeP2wpkhAddress(sourceAddress); }
+      catch (error) { throw new Error(`送金元アドレス: ${error instanceof Error ? error.message : String(error)}`); }
+      try { destinationProgram = decodeP2wpkhAddress(destinationAddress); }
+      catch (error) { throw new Error(`送金先アドレス: ${error instanceof Error ? error.message : String(error)}`); }
+      if (source.address !== sourceAddress || !equalBytes(source.script.slice(2), sourceProgram))
+        throw new Error("送金元アドレスを読み込み直してください。");
+      const inputKey = source;
+      const amount = parseAmount(document.getElementById("amount").value);
+      const feeRate = parseFeeRate(document.getElementById("feerate").value);
+      if (amount <= 0n || amount > 2100000000000000n) throw new Error("送金額は0より大きく、2100万 BTC 以下にしてください。");
+      const utxo = await fetchUtxo(sourceAddress, amount, feeFor(109, feeRate));
+      utxo.value = BigInt(utxo.value);
+      utxo.script = inputKey.script;
+      utxo.pubkey = inputKey.pubkey;
+      utxo.fingerprint = wallet.fingerprint;
+      utxo.account = wallet.account;
+      utxo.branch = inputKey.branch;
+      utxo.index = inputKey.index;
+      const changeKey = deriveChild(wallet, 1, inputKey.index);
+      utxo.changePubkey = changeKey.pubkey;
+      utxo.changeScript = changeKey.script;
+      utxo.changeIndex = inputKey.index;
+      const built = buildPsbtBytes(utxo, Uint8Array.of(0, 20, ...destinationProgram), amount, feeRate);
+      unsignedPsbt = built.psbt;
+      const ur = encodePsbt(parser, unsignedPsbt, 70);
+      const urParts = Array.from({ length: ur.seqLen }, () => ur.next());
+      if (!urParts.length) throw new Error("PSBTをURに変換できませんでした。");
+      activeTransaction = { unsignedTx: built.unsignedTx, utxo, source: inputKey, amount, fee: built.fee, destination: destinationAddress,
+        change: built.change, useChange: built.useChange };
+      scanButton.disabled = false;
+      scanStatus.textContent = "PSBTを作成しました。署名器が署名済みPSBTを表示する前にスキャンを開始してください。";
+      animation = { parts: urParts, index: 0, count: 0 };
+      const showFrame = () => {
+        const part = animation.parts[animation.index++ % animation.parts.length];
+        paintQr(part);
+        animation.count++;
+        renderPsbtDetails();
+      };
+      result.hidden = false;
+      qrTitle.textContent = "Unsigned PSBT · Animated QR";
+      qrHint.textContent = "署名器で「Scan PSBT」を選ぶと、このQRを仮想カメラで読み取ります。";
+      qrActions.hidden = false;
+      showFrame(); frameTimer = setInterval(showFrame, 450);
+      downloadButton.disabled = false; toggleButton.disabled = false;
+      const module = signerModule();
+      cameraQrId = "qr";
+      if (module) module.cameraQrId = cameraQrId;
+      if (!module?.ready) throw new Error("ページ内署名器が起動していません。");
+      psbtStatus.textContent = "署名器で「Scan PSBT」を選び、Walletカメラの枠に署名器の画面を合わせてください。";
+      showWalletScreen("wallet-screen-psbt");
+      updateCameraBeam();
+    } catch (error) {
+      statusEl.textContent = error instanceof Error ? error.message : String(error);
+    } finally {
+      createButton.disabled = !wallet || !source || !!activeTransaction;
+    }
+  });
+
+  downloadButton.addEventListener("click", () => {
+    if (!unsignedPsbt) return;
+    const url = URL.createObjectURL(new Blob([unsignedPsbt], { type: "application/octet-stream" }));
+    const link = Object.assign(document.createElement("a"), { href: url, download: "unsigned.psbt" });
+    link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  toggleButton.addEventListener("click", () => {
+    if (!frameTimer) {
+      frameTimer = setInterval(() => {
+        const part = animation.parts[animation.index++ % animation.parts.length];
+        paintQr(part); animation.count++;
+        renderPsbtDetails();
+      }, 450);
+      toggleButton.textContent = "QRを停止";
+    } else {
+      clearInterval(frameTimer); frameTimer = null;
+      toggleButton.textContent = "QRを再開";
+    }
+  });
+
+  broadcastButton.addEventListener("click", async () => {
+    if (!rawTransaction) return;
+    broadcastButton.disabled = true;
+    broadcastPending = true;
+    renderOnboarding();
+    broadcastStatus.textContent = "signetへブロードキャストしています…";
+    try {
+      const response = await fetch(`${API}/tx`, {
+        method: "POST",
+        headers: { "content-type": "text/plain" },
+        body: bytesToHex(rawTransaction),
+      });
+      const resultText = (await response.text()).trim();
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${resultText}`);
+      if (!/^[0-9a-f]{64}$/i.test(resultText)) throw new Error(`予期しない応答: ${resultText}`);
+      const link = document.createElement("a");
+      link.href = `https://mempool.space/signet/tx/${resultText}`;
+      link.textContent = resultText;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      broadcastPending = false;
+      broadcasted = true;
+      broadcastStatus.replaceChildren(document.createTextNode("送信しました: "), link);
+      renderOnboarding();
+    } catch (error) {
+      broadcastPending = false;
+      broadcastStatus.textContent = `ブロードキャストに失敗しました: ${error instanceof Error ? error.message : String(error)}`;
+      broadcastButton.disabled = false;
+      renderOnboarding();
+    }
+  });
+} catch (error) {
+  statusEl.textContent = `初期化に失敗しました: ${error instanceof Error ? error.message : String(error)}`;
+}
+
+function formatBtc(sats) {
+  const whole = sats / 100000000n, fraction = String(sats % 100000000n).padStart(8, "0");
+  return `${whole}.${fraction}`;
+}
+
+function renderPsbtDetails() {
+  if (!animation || !activeTransaction) return;
+  const transaction = activeTransaction;
+  details.textContent = [
+    `UR:CRYPTO-PSBT · ${animation.count}フレーム目（${animation.parts.length}枚）`,
+    `送金額: ${formatBtc(transaction.amount)} BTC`,
+    `手数料: ${transaction.fee} sat`,
+    `変更額: ${transaction.useChange ? `${transaction.change} sat` : "なし（余りは手数料）"}`,
+    `入力: ${transaction.utxo.txid}:${transaction.utxo.vout}`,
+  ].map(line => translateUiText(line, pageLanguage)).join("\n");
+}
+</script>
+</body>
+</html>
