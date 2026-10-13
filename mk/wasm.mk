@@ -52,8 +52,8 @@ check-repro: tools/build/toolchain.sh checksums.txt
 	  RTLIB=$(CURDIR)/$(SDK)/lib/clang/23/lib/wasm32-unknown-wasi \
 	  WASM_OPT=$(CURDIR)/build/toolchain/binaryen-version_132/bin/wasm-opt
 	@(shasum -a 256 $(REPRO_WASM) 2>/dev/null || sha256sum $(REPRO_WASM)) > /tmp/repro.txt
-	@diff /tmp/repro.txt checksums.txt && echo "すべて一致した（再現可能）" \
-	  || { echo "一致しない。docs/reproducible-build.md を見る"; exit 1; }
+	@diff /tmp/repro.txt checksums.txt && echo "all match (reproducible)" \
+	  || { echo "mismatch; see docs/reproducible-build.md"; exit 1; }
 .PHONY: check-repro
 
 check-parser:
