@@ -259,6 +259,7 @@ button:disabled { opacity:.45; cursor:default; }
   <rect id="beam-subject-label-bg" rx="4" visibility="hidden"></rect>
   <text id="beam-subject-label" visibility="hidden"></text>
 </svg>
+<script src="./html2canvas.min.js"></script>
 <script src="./jsQR.min.js"></script>
 <script type="module">
 import createSendSupport from "./send_support.js";
@@ -1219,7 +1220,9 @@ function updateCameraBeam() {
 }
 
 function setHwwCameraScanning(active) {
+  const starting = active && !hwwCameraScanning;
   hwwCameraScanning = active;
+  if (starting) signerModule()?.resetParentScene?.();
   updateCameraBeam();
 }
 

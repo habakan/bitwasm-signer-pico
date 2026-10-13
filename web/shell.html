@@ -34,7 +34,8 @@ html.embedded .device { touch-action:none; }
 .device-main { display:flex; align-items:center; gap:12px; }
 .device-screenframe { flex:1; min-width:0; padding:8px; border:1px solid #55524d; border-radius:12px; background:#11110f; box-shadow:inset 0 2px 8px #0009; }
 .screen-label { display:flex; justify-content:space-between; padding:0 1px 7px; color:#99958c; font:9px ui-monospace,monospace; letter-spacing:.1em; }
-canvas#lcd { width:100%; max-width:280px; aspect-ratio:1; image-rendering:pixelated; background:#000; border:1px solid #45433f; border-radius:4px; display:block; margin:auto; }
+.lcd-view { position:relative; width:100%; max-width:280px; aspect-ratio:1; margin:auto; overflow:hidden; }
+canvas#lcd { width:100%; height:100%; max-width:none; aspect-ratio:1; image-rendering:pixelated; background:#000; border:1px solid #45433f; border-radius:4px; display:block; }
 .device-controls { display:flex; flex:none; flex-direction:column; align-items:center; justify-content:center; gap:7px; padding:0 2px; }
 .layout-switch { display:grid; grid-template-columns:1fr 1fr; gap:3px; width:100%; }
 .layout-switch button { min-height:24px; padding:2px 4px; border-radius:6px; font-size:9px; white-space:nowrap; }
@@ -50,9 +51,9 @@ button:active { filter:brightness(1.4); transform:translateY(1px); }
 button:disabled { opacity: .45; cursor: default; }
 .pad button { min-width:0; padding:0; }
 .pad button[data-key="4"] { border-radius:50%; font-size:9px; }
-.device-status { display:flex; align-items:center; gap:8px; min-height:32px; padding:7px 9px 0; border-top:1px solid #ffffff17; color:#aaa69e; font-size:11px; }
+.device-status { display:flex; align-items:flex-start; gap:8px; min-height:32px; padding:7px 9px 0; border-top:1px solid #ffffff17; color:#aaa69e; font-size:11px; }
 .status-led { width:7px; height:7px; flex:none; border-radius:50%; background:#d99000; box-shadow:0 0 8px #d9900088; }
-.camera-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.camera-label { min-width:0; overflow-wrap:anywhere; }
 .service-panel { margin-top:12px; color:var(--muted); font-size:12px; }
 .service-panel summary { width:max-content; cursor:pointer; }
 .service-body { padding:10px 2px 0; }
@@ -75,7 +76,9 @@ video { display: none; }
   <div class="device-main">
     <div class="device-screenframe">
       <div class="screen-label"><span>SECURE DISPLAY</span><span>240 × 240</span></div>
-      <canvas id="lcd" width="240" height="240" aria-label="ハードウェアウォレットの画面"></canvas>
+      <div class="lcd-view">
+        <canvas id="lcd" width="240" height="240" aria-label="ハードウェアウォレットの画面"></canvas>
+      </div>
     </div>
     <div class="device-controls" id="device-controls" data-layout="five-way">
       <div class="layout-switch" role="group" aria-label="操作方式">
@@ -199,10 +202,144 @@ function cameraFrameRect() {
 
 const scene = Object.assign(document.createElement('canvas'), { width: 320, height: 240 });
 const sceneContext = scene.getContext('2d', { willReadFrequently: true });
-let scenePending = false, sceneReady = false, sceneFailed = false, sceneError = '', sceneRequestedAt = 0, sceneView = null;
+let viewportScene = null;
+let scenePending = false, sceneReady = false, sceneFailed = false, sceneError = '', sceneRequestedAt = 0, sceneView = null, sceneViewIncludesFrames = true, sceneRequestId = 0;
+let viewportPending = false, viewportReady = false, viewportFailed = false, viewportError = '', viewportRequestedAt = 0, viewportRequestId = 0;
+let viewportCssWidth = 0, viewportCssHeight = 0, viewportBackground = '#fff';
 
 function sameSceneView(a, b) {
   return a && b && a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
+}
+
+function prepareVirtualCameraClone(clonedDocument, source, parentWindow) {
+  clonedDocument.querySelector('#camera-beam')?.remove();
+  const preview = clonedDocument.querySelector('#receive-preview');
+  if (preview) {
+    const placeholder = clonedDocument.createElement('div');
+    for (const attr of ['id', 'class', 'style'])
+      if (preview.hasAttribute(attr)) placeholder.setAttribute(attr, preview.getAttribute(attr));
+    const original = source.querySelector('#receive-preview');
+    if (original) {
+      const style = parentWindow.getComputedStyle(original);
+      placeholder.style.cssText = [...style].map(name => `${name}:${style.getPropertyValue(name)}`).join(';');
+    }
+    preview.replaceWith(placeholder);
+  }
+  const sourceFrames = [...source.querySelectorAll('iframe')], clonedFrames = [...clonedDocument.querySelectorAll('iframe')];
+  sourceFrames.forEach((frame, index) => {
+    const copy = clonedFrames[index];
+    if (!copy) return;
+    const placeholder = clonedDocument.createElement('div');
+    for (const attr of ['id', 'class', 'style'])
+      if (copy.hasAttribute(attr)) placeholder.setAttribute(attr, copy.getAttribute(attr));
+    const style = parentWindow.getComputedStyle(frame);
+    placeholder.style.cssText = [...style].map(name => `${name}:${style.getPropertyValue(name)}`).join(';');
+    copy.replaceWith(placeholder);
+  });
+  const originalFields = source.querySelectorAll('input, textarea, select');
+  const clonedFields = clonedDocument.querySelectorAll('input, textarea, select');
+  originalFields.forEach((field, index) => {
+    const copy = clonedFields[index];
+    if (!copy) return;
+    if (field.tagName === 'TEXTAREA') copy.textContent = field.value;
+    else if (field.tagName === 'SELECT') [...copy.options].forEach((option, i) => option.selected = field.selectedIndex === i);
+    else {
+      copy.setAttribute('value', field.value);
+      if (field.checked) copy.setAttribute('checked', ''); else copy.removeAttribute('checked');
+    }
+  });
+}
+
+function requestViewportSceneFrame() {
+  const now = performance.now();
+  if (viewportPending && now - viewportRequestedAt > 5000) {
+    viewportRequestId++;
+    viewportPending = false;
+    viewportFailed = true;
+    viewportError = '仮想カメラ映像の生成がタイムアウトしました。';
+  }
+  if (viewportFailed || viewportPending || now - viewportRequestedAt < 150) return;
+  viewportRequestedAt = now;
+  viewportPending = true;
+  const requestId = ++viewportRequestId;
+  try {
+    const source = window.parent.document;
+    const parentWindow = source.defaultView;
+    const width = parentWindow.innerWidth, height = parentWindow.innerHeight;
+    const scrollX = parentWindow.scrollX, scrollY = parentWindow.scrollY;
+    const render = parentWindow.html2canvas;
+    if (typeof render !== 'function') throw new Error('ページ描画ライブラリを読み込めません。');
+    const bodyBackground = parentWindow.getComputedStyle(source.body).backgroundColor;
+    const rootBackground = parentWindow.getComputedStyle(source.documentElement).backgroundColor;
+    viewportBackground = bodyBackground !== 'rgba(0, 0, 0, 0)' ? bodyBackground
+      : rootBackground !== 'rgba(0, 0, 0, 0)' ? rootBackground : '#fff';
+    render(source.documentElement, {
+      x: scrollX,
+      y: scrollY,
+      width,
+      height,
+      scale: 1,
+      scrollX,
+      scrollY,
+      windowWidth: width,
+      windowHeight: height,
+      backgroundColor: viewportBackground,
+      allowTaint: false,
+      useCORS: false,
+      foreignObjectRendering: false,
+      logging: false,
+      onclone(clonedDocument) { prepareVirtualCameraClone(clonedDocument, source, parentWindow); },
+    }).then(canvas => {
+      if (requestId !== viewportRequestId) return;
+      canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, 1, 1);
+      viewportScene = canvas;
+      viewportCssWidth = width;
+      viewportCssHeight = height;
+      viewportReady = true;
+      viewportFailed = false;
+      viewportError = '';
+    }).catch(error => {
+      if (requestId !== viewportRequestId) return;
+      viewportFailed = true;
+      viewportError = `ページ映像を読み取れません: ${String(error)}`;
+    }).finally(() => {
+      if (requestId === viewportRequestId) viewportPending = false;
+    });
+  } catch (error) {
+    if (requestId !== viewportRequestId) return;
+    viewportFailed = true;
+    viewportPending = false;
+    viewportError = String(error);
+  }
+}
+
+function captureViewportScene(view, target) {
+  requestViewportSceneFrame();
+  if (!viewportReady || !viewportScene || !viewportCssWidth || !viewportCssHeight) return false;
+  const context = target.getContext('2d');
+  context.imageSmoothingEnabled = false;
+  context.fillStyle = viewportBackground || '#fff';
+  context.fillRect(0, 0, target.width, target.height);
+  const left = Math.max(0, view.left), top = Math.max(0, view.top);
+  const right = Math.min(viewportCssWidth, view.left + view.width);
+  const bottom = Math.min(viewportCssHeight, view.top + view.height);
+  if (right <= left || bottom <= top) return true;
+  const scaleX = viewportScene.width / viewportCssWidth, scaleY = viewportScene.height / viewportCssHeight;
+  context.drawImage(viewportScene,
+    left * scaleX, top * scaleY, (right - left) * scaleX, (bottom - top) * scaleY,
+    (left - view.left) / view.width * target.width,
+    (top - view.top) / view.height * target.height,
+    (right - left) / view.width * target.width,
+    (bottom - top) / view.height * target.height);
+  return true;
+}
+
+function parentSceneFailed() {
+  return viewportFailed || sceneFailed;
+}
+
+function parentSceneError() {
+  return viewportFailed ? viewportError : sceneError;
 }
 
 function renderFrameView(frame) {
@@ -276,12 +413,22 @@ function renderFrameView(frame) {
   });
 }
 
-function requestSceneFrame(view) {
+function requestSceneFrame(view, includeFrames = true) {
+  if (!includeFrames) {
+    requestViewportSceneFrame();
+    return;
+  }
   const now = performance.now();
-  if (scenePending && now - sceneRequestedAt > 3000) { scenePending = false; sceneFailed = true; sceneError = '仮想カメラ映像の生成がタイムアウトしました。'; }
-  if (sceneFailed || scenePending || (sameSceneView(sceneView, view) && now - sceneRequestedAt < 100)) return;
+  if (scenePending && now - sceneRequestedAt > 3000) {
+    sceneRequestId++;
+    scenePending = false;
+    sceneFailed = true;
+    sceneError = '仮想カメラ映像の生成がタイムアウトしました。';
+  }
+  if (sceneFailed || scenePending || (sameSceneView(sceneView, view) && sceneViewIncludesFrames === includeFrames && now - sceneRequestedAt < 100)) return;
   sceneRequestedAt = now;
   scenePending = true;
+  const requestId = ++sceneRequestId;
   const requestedView = { ...view };
   let url = null;
   try {
@@ -337,7 +484,7 @@ function requestSceneFrame(view) {
       placeholder.setAttribute('aria-hidden', 'true');
       copy.replaceWith(placeholder);
       return { rect: { left: rect.left + frame.clientLeft, top: rect.top + frame.clientTop,
-        width: frame.clientWidth, height: frame.clientHeight }, snapshot: renderFrameView(frame) };
+        width: frame.clientWidth, height: frame.clientHeight }, snapshot: includeFrames ? renderFrameView(frame) : Promise.resolve(null) };
     });
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('width', '320'); svg.setAttribute('height', '240');
@@ -350,13 +497,14 @@ function requestSceneFrame(view) {
     const image = new Image();
     image.onload = () => {
       Promise.all(frameViews.map(async ({ rect, snapshot }) => ({ rect, snapshot: await snapshot }))).then(frames => {
-        if (frames.some(({ snapshot }) => !snapshot)) {
+        if (requestId !== sceneRequestId) return;
+        if (includeFrames && frames.some(({ snapshot }) => !snapshot)) {
           sceneFailed = true;
           sceneError = '署名器の表示を仮想カメラ映像に合成できませんでした。';
           return;
         }
         sceneContext.drawImage(image, 0, 0, 320, 240);
-        for (const { rect: content, snapshot } of frames) {
+        for (const { rect: content, snapshot } of includeFrames ? frames : []) {
           const left = Math.max(content.left, requestedView.left), top = Math.max(content.top, requestedView.top);
           const right = Math.min(content.left + content.width, requestedView.left + requestedView.width);
           const bottom = Math.min(content.top + content.height, requestedView.top + requestedView.height);
@@ -375,28 +523,33 @@ function requestSceneFrame(view) {
         sceneFailed = false;
         sceneError = '';
         sceneView = requestedView;
-      }).catch(() => {
+        sceneViewIncludesFrames = includeFrames;
+      }).catch(error => {
+        if (requestId !== sceneRequestId) return;
         sceneFailed = true;
-        sceneError = '仮想カメラ映像を合成できませんでした。';
+        sceneError = `仮想カメラ映像を合成できませんでした: ${String(error)}`;
       }).finally(() => {
-        scenePending = false;
+        if (requestId === sceneRequestId) scenePending = false;
         URL.revokeObjectURL(url);
       });
     };
     image.onerror = () => {
+      if (requestId !== sceneRequestId) { URL.revokeObjectURL(url); return; }
       sceneFailed = true; scenePending = false; sceneError = 'ページの仮想映像を生成できませんでした。';
       URL.revokeObjectURL(url);
     };
     image.src = url;
   } catch (error) {
+    if (requestId !== sceneRequestId) return;
     sceneFailed = true; scenePending = false; sceneError = String(error);
     if (url) URL.revokeObjectURL(url);
   }
 }
 
-function captureParentView(view, target) {
-  requestSceneFrame(view);
-  if (sceneFailed || !sceneReady || !sameSceneView(sceneView, view)) return false;
+function captureParentView(view, target, includeFrames = true) {
+  if (!includeFrames) return captureViewportScene(view, target);
+  requestSceneFrame(view, includeFrames);
+  if (sceneFailed || !sceneReady || !sameSceneView(sceneView, view) || sceneViewIncludesFrames !== includeFrames) return false;
   const context = target.getContext('2d');
   context.imageSmoothingEnabled = false;
   context.drawImage(scene, 0, 0, target.width, target.height);
@@ -404,12 +557,22 @@ function captureParentView(view, target) {
 }
 
 function resetParentScene() {
-  if (scenePending) return;
+  sceneRequestId++;
+  viewportRequestId++;
+  scenePending = false;
   sceneReady = false;
   sceneFailed = false;
   sceneError = '';
   sceneView = null;
   sceneRequestedAt = 0;
+  viewportPending = false;
+  viewportReady = false;
+  viewportFailed = false;
+  viewportError = '';
+  viewportRequestedAt = 0;
+  viewportScene = null;
+  viewportCssWidth = 0;
+  viewportCssHeight = 0;
 }
 
 function drawQrFallback(view, qr) {
@@ -449,10 +612,10 @@ var Module = {
   parentPoint(point) { return Module.isEmbedded() ? parentPoint(point) : null; },
   cameraLensPoint() { return Module.isEmbedded() ? cameraLensPoint() : null; },
   cameraFrameRect() { return Module.isEmbedded() ? cameraFrameRect() : null; },
-  captureParentView(view, target) { return Module.isEmbedded() && captureParentView(view, target); },
+  captureParentView(view, target, includeFrames) { return Module.isEmbedded() && captureParentView(view, target, includeFrames); },
   resetParentScene() { if (Module.isEmbedded()) resetParentScene(); },
-  parentSceneFailed() { return sceneFailed; },
-  parentSceneError() { return sceneError; },
+  parentSceneFailed() { return parentSceneFailed(); },
+  parentSceneError() { return parentSceneError(); },
   setCameraStatus(text) { renderCameraStatus(text); },
   canUseParentQr() {
     try { return Module.isEmbedded() && !!window.parent.document.getElementById(Module.cameraQrId); }
@@ -480,7 +643,10 @@ var Module = {
     log.scrollTop = log.scrollHeight;
   },
   printErr: t => console.warn(t),
-  present(rgba) { img.data.set(rgba); lcd.putImageData(img, 0, 0); },
+  present(rgba) {
+    img.data.set(rgba);
+    lcd.putImageData(img, 0, 0);
+  },
   capture(buf) {
     if (Module.isEmbedded()) {
       clearTimeout(embeddedScanIdle);
@@ -493,21 +659,24 @@ var Module = {
       try {
         const qr = Module.canUseParentQr() ? window.parent.document.getElementById(Module.cameraQrId) : null;
         const view = cameraFrameRect();
-        drawQrFallback(view, qr);
+        const captured = captureParentView(view, grab.canvas, false);
+        if (!captured) drawQrFallback(view, qr);
         const rect = qr?.getClientRects().length ? qr.getBoundingClientRect() : null;
         const aligned = rect && rect.left >= view.left - 2 && rect.top >= view.top - 2
           && rect.right <= view.left + view.width + 2 && rect.bottom <= view.top + view.height + 2;
-        renderCameraStatus(aligned ? '仮想カメラ · QRが照準範囲内' : '仮想カメラ · 照準内のQRを待機中');
+        renderCameraStatus(parentSceneFailed()
+          ? `仮想カメラ · ${parentSceneError() || '画面映像を利用できずQRのみ表示中'}`
+          : aligned ? '仮想カメラ · QRが照準範囲内' : '仮想カメラ · 照準内のQRを待機中');
         const d = grab.getImageData(0, 0, 320, 240).data;
         for (let i = 0; i < buf.length; i++) buf[i] = (d[i * 4] * 77 + d[i * 4 + 1] * 150 + d[i * 4 + 2] * 29) >> 8;
         return 1;
-      } catch {
+      } catch (error) {
         grab.canvas.width = 320; grab.canvas.height = 240;
         try {
           const view = cameraFrameRect();
           const qr = Module.canUseParentQr() ? window.parent.document.getElementById(Module.cameraQrId) : null;
           drawQrFallback(view, qr);
-          renderCameraStatus('仮想カメラ · QRが照準範囲内');
+          renderCameraStatus(`仮想カメラ · ${error instanceof Error ? error.message : String(error)}`);
           const d = grab.getImageData(0, 0, 320, 240).data;
           for (let i = 0; i < buf.length; i++) buf[i] = (d[i * 4] * 77 + d[i * 4 + 1] * 150 + d[i * 4 + 2] * 29) >> 8;
         } catch {

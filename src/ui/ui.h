@@ -36,6 +36,8 @@ void ui_review_init(ui_review_t *r, const core_display_t *d);
  * gives UI_REJECTED */
 int ui_review_key(ui_review_t *r, int key);
 void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]);
+void ui_render_scan_line(const uint8_t *img, int camera_w, int camera_h, const char *status, int y,
+                         uint16_t line[UI_W]);
 
 /* A list to pick from. Two buttons are enough: one moves the cursor, the other selects */
 #define UI_MENU_MAX 6

@@ -20,10 +20,20 @@ WEB_TEST_PSBT_H_DIR := $(CURDIR)/build
 WEB_TEST_PSBT_H := build/test_psbt.h
 endif
 
+WEB_EXTRA_TARGET += $(WEB_BUILD_DIR)/html2canvas.min.js $(WEB_BUILD_DIR)/html2canvas-LICENSE.txt
+
 .PHONY: FORCE_WEB_CONFIG
 FORCE_WEB_CONFIG:
 
 web: $(WEB_BUILD_DIR)/signer.html $(WEB_EXTRA_TARGET)
+
+$(WEB_BUILD_DIR)/html2canvas.min.js: web/vendor/html2canvas.min.js
+	mkdir -p $(dir $@)
+	cp $< $@
+
+$(WEB_BUILD_DIR)/html2canvas-LICENSE.txt: web/vendor/html2canvas-LICENSE.txt
+	mkdir -p $(dir $@)
+	cp $< $@
 
 $(WEB_BUILD_DIR)/signer.html: FORCE_WEB_CONFIG build/parser_wasm.h build/font8x16.h $(WEB_TEST_PSBT_H) web/CMakeLists.txt web/hal.c web/shell.html \
   web/send_support.c src/main.c src/runtime/parser_host.c src/ui/ui.c $(CORE_SRC) components/parts/parser/c/include/*.h

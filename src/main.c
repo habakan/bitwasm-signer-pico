@@ -21,6 +21,9 @@
 #include "seedqr.h"
 #include "parser_wasm.h"
 #include "test_psbt.h"
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 #define TEST_MNEMONIC "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
@@ -86,32 +89,16 @@ static void sign_buffers_give(void) {
     prevtx_arena = signed_psbt = NULL;
 }
 
-/* Shows the captured frame, keeping a band at the top and bottom, with the status on the first line,
- * so the camera can actually be aimed */
+/* Shows the captured frame cropped to fill the display. */
 static void show_preview(const uint8_t *img, const char *status) {
 #if NO_LCD
     (void)img;
     printf("%s\n", status);
 #else
-    static ui_screen_t s;
     uint16_t line[UI_W];
-
-    memset(&s, 0, sizeof(s));
-    strncpy(s.text[0], status, UI_COLS);
-    s.color[0] = 0xfd40;
     st7789_begin_frame();
     for (int y = 0; y < UI_H; y++) {
-        if (y < 16) {
-            ui_render_line(&s, y, line);
-        } else if (y >= 30 && y < 210) { /* 320x240 decimated to three quarters, shown as 240x180 */
-            int sy = (y - 30) * 4 / 3;
-            for (int x = 0; x < UI_W; x++) {
-                uint8_t v = img[sy * CAMERA_W + x * 4 / 3];
-                line[x] = (uint16_t)((v >> 3) << 11 | (v >> 2) << 5 | (v >> 3));
-            }
-        } else {
-            memset(line, 0, sizeof(line));
-        }
+        ui_render_scan_line(img, CAMERA_W, CAMERA_H, status, y, line);
         st7789_write_line(line);
     }
 #endif
