@@ -91,14 +91,15 @@ Known limitations and operational constraints are in [docs/limitations.md](docs/
 ### Build the browser demo
 
 ```sh
-make web                          # signet build; needs Emscripten; writes signer.html and send.html
+make web                          # signet build; needs Emscripten; writes signer.html and airgap-trial.html
 make web TESTNET=0                # mainnet build
 ```
 
 The same `main.c`, review screens, signing core and `parser.wasm` on WAMR, compiled to WebAssembly. The
-signet `send.html` embeds the signer and can create, review, sign, finalize and broadcast a one-input
-transaction in one page. It uses the public BIP39 test seed and is a demo, not a signing device: never
-use it for coins with value. For the walkthrough, see
+signet `airgap-trial.html` simulates an AirGap transaction flow in the browser. It embeds the signer
+and can create, review, sign, finalize and broadcast a one-input transaction to Signet. It uses the
+public BIP39 test seed and is a demo, not a signing device: never use it for coins with value. For
+the walkthrough, see
 [the browser signet procedure](docs/verification.md#browser-demo-signet-transaction).
 
 ## Check it yourself

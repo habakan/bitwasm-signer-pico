@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Signet送金 | jitsu-in-pico</title>
+<title>仮想AirGap取引 | jitsu-in-pico</title>
 <style>
 :root { color-scheme: light dark; --bg:#f4f2ee; --fg:#1d1c1a; --muted:#6b6760; --panel:#fff; --line:#d9d5cd; --accent:#3d3b38; --accent-fg:#f4f2ee; --warn:#fdecc8; }
 @media (prefers-color-scheme: dark) { :root { --bg:#161514; --fg:#ece9e3; --muted:#9c978e; --panel:#201f1d; --line:#34322f; --accent:#3a3835; --accent-fg:#f4f2ee; --warn:#3b2c0c; } }
@@ -130,8 +130,8 @@ button:disabled { opacity:.45; cursor:default; }
 <body>
 <main>
 <div class="page-heading">
-  <div><h1>Signet 送金を1ページで体験</h1>
-  <p>ウォレット準備、PSBT作成、署名内容の確認、署名、ブロードキャストまでを順番に進めます。</p></div>
+  <div><h1>画面上で仮想AirGap取引を体験</h1>
+  <p>画面上のウォレットと署名器を操作し、PSBTの作成・署名からSignetへのテスト送金まで体験できます。</p></div>
   <div class="language-switch" role="group" aria-label="表示言語">
     <button type="button" data-language="ja" aria-pressed="true">日本語</button>
     <button type="button" data-language="en" aria-pressed="false">English</button>
@@ -363,9 +363,9 @@ const translationPairs = [
   ["署名済み取引の送金先・金額・手数料をもう一度確認してください。問題がなければ「signetへブロードキャスト」を押します。", "Review the signed transaction’s recipient, amount, and fee. If everything is correct, choose “Broadcast to Signet”."],
   ["Signetへ送信しています。ネットワークの応答を待ってください。", "Broadcasting to Signet. Waiting for a network response."],
   ["取引をSignetに送信しました。下のTXIDリンクからブロックエクスプローラーで確認できます。", "The transaction was sent to Signet. Open the TXID link below to view it in the block explorer."],
-  ["Signet送金 | jitsu-in-pico", "Signet payment | jitsu-in-pico"],
-  ["Signet 送金を1ページで体験", "Try a Signet payment in one page"],
-  ["ウォレット準備、PSBT作成、署名内容の確認、署名、ブロードキャストまでを順番に進めます。", "Walk through wallet setup, PSBT creation, transaction review, signing, and broadcast."],
+  ["仮想AirGap取引 | jitsu-in-pico", "Virtual AirGap transaction | jitsu-in-pico"],
+  ["画面上で仮想AirGap取引を体験", "Try a virtual AirGap transaction on screen"],
+  ["画面上のウォレットと署名器を操作し、PSBTの作成・署名からSignetへのテスト送金まで体験できます。", "Use the on-screen wallet and signer to create and sign a PSBT, then send a test transaction to Signet."],
   ["このページはsignet専用です。通常は公開デモシードを使い、必要なら別のテスト用SeedQRを設定できます。実際の価値があるコインや秘密鍵は絶対に使わないでください。UTXO照会とブロードキャストにはmempool.space signet APIを使います。", "This page is for Signet only. It uses the public demo seed by default, and you can select another test SeedQR if needed. Never use real coins or private keys. UTXO lookup and broadcast use the mempool.space Signet API."],
   ["表示言語", "Display language"],
   ["SeedQRを変更", "Change SeedQR"],
@@ -450,10 +450,14 @@ const translationPairs = [
   ["仮想カメラレンズ", "Virtual camera lens"],
   ["ハードウェアウォレットの画面", "Hardware wallet display"],
   ["方向パッド", "Directional pad"],
+  ["操作方式", "Control layout"],
+  ["2ボタン操作", "Two-button controls"],
+  ["2ボタン", "2 buttons"], ["5方向キー", "5-way pad"],
+  ["次へ", "Next"], ["決定", "Select"],
   ["ドラッグまたは矢印キーでHWWを移動", "Drag or use arrow keys to move the HWW"],
   ["セキュアディスプレイ", "SECURE DISPLAY"],
   ["署名器の詳細", "Signer details"],
-  ["Pico 2ファームウェアと署名機能をブラウザ内で実行しています。ジョイスティック:", "Pico 2 firmware and signing core running in the browser. Joystick:"],
+  ["Pico 2ファームウェアと署名コアをブラウザで実行しています。両方の操作方式で「次へ」で進み、「PUSH」で決定します。5方向キーでは前の画面にも戻れます。キーボード: ↓ / Nで次へ、Enterで決定、Escでキャンセル。", "Pico 2 firmware and signing core run in the browser. Use NEXT to move and PUSH to select in both layouts; the 5-way pad also supports reverse navigation. Keyboard: ↓ / N for next, Enter to select, Esc to cancel."],
   ["署名済みURをダウンロード", "Download signed UR"],
   ["上", "Up"], ["下", "Down"], ["左", "Left"], ["右", "Right"],
   ["QRを再開", "Resume QR"],
@@ -624,7 +628,7 @@ function translateTree(node, language) {
 function setLanguage(language) {
   pageLanguage = language === "en" ? "en" : "ja";
   document.documentElement.lang = pageLanguage;
-  document.title = translateUiText("Signet送金 | jitsu-in-pico", pageLanguage);
+  document.title = translateUiText("仮想AirGap取引 | jitsu-in-pico", pageLanguage);
   translateTree(document.body, pageLanguage);
   document.querySelectorAll("[data-language]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.language === pageLanguage)));
   window.jitsuLanguage = pageLanguage;

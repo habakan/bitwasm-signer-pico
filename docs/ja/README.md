@@ -80,11 +80,11 @@ make run TESTNET=1 SECONDS=180    # signet 用
 ### ブラウザ版のビルド
 
 ```sh
-make web                          # signet 用。signer.html と send.html を出力
+make web                          # signet 用。signer.html と airgap-trial.html を出力
 make web TESTNET=0                # mainnet 用
 ```
 
-signet ビルドの `send.html` はソフトウェアウォレット風の送金画面と署名器を1ページに埋め込み、PSBT作成から署名・ブロードキャストまで進めます。公開テストSeedQRをStep 1に表示し、署名器側の「Scan SeedQR」で読み込んでから送金を作成します。PSBTのアニメーションQRはウォレット内に表示し、署名器側で「Scan PSBT」を選んで読み込みます。タイトルバーをドラッグしてウォレットの位置を動かせます。公開テストシードを使うデモなので、価値のあるコインは絶対に使わないでください。
+signet ビルドの `airgap-trial.html` では、ブラウザ上で仮想的なAirGap取引の流れを体験できます。画面に表示されるソフトウェアウォレットと署名器を使い、PSBTの作成・署名からSignetへのブロードキャストまで進めます。公開テストシードを使うデモなので、価値のあるコインは絶対に使わないでください。
 
 実機と同じ `main.c`、レビュー画面、署名コア、WAMR 上の `parser.wasm` を WebAssembly にしたものです。
 置き換えているのは LCD、ボタン、カメラだけです（`web/hal.c`）。署名デバイスではないため、実際のウォレットの SeedQR は読ませないでください。

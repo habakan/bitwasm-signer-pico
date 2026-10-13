@@ -99,7 +99,7 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
     put_number(&w, C_TEXT, "Outputs:  ", d->n_outputs);
     put_number(&w, C_TEXT, "External: ", n_send);
     w.row = UI_ROWS - 1;
-    put(&w, C_HINT, "RIGHT: next   A: cancel");
+    put(&w, C_HINT, "DOWN: review outputs");
 
     for (unsigned int i = 0; i < d->n_outputs; i++) {
         const core_display_output_t *o = &d->outputs[i];
@@ -116,7 +116,7 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
                                                   : "Script (hex):");
         put_wrapped(&w, C_TEXT, o->text);
         w.row = UI_ROWS - 1;
-        put(&w, C_HINT, "LEFT/RIGHT: prev/next");
+        put(&w, C_HINT, "DOWN: next screen");
     }
 
     w = (writer_t){&r->screens[r->n++], 0};
@@ -127,7 +127,7 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
     put_amount(&w, C_TEXT, "Fee   ", d->fee);
     w.row = UI_ROWS - 2;
     put(&w, C_HINT, "PUSH: sign");
-    put(&w, C_HINT, "NEXT: cancel screen");
+    put(&w, C_HINT, "DOWN: cancel option");
 
     /* The last screen is the cancel screen, so two buttons are enough to reject; it wraps to the first */
     w = (writer_t){&r->screens[r->n++], 0};
@@ -137,7 +137,7 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
     put(&w, C_TEXT, "Nothing is signed.");
     w.row = UI_ROWS - 2;
     put(&w, C_HINT, "PUSH: cancel");
-    put(&w, C_HINT, "NEXT: back to start");
+    put(&w, C_HINT, "DOWN: return to start");
     r->seen = 1;
 }
 

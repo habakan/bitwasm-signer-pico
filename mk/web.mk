@@ -4,7 +4,7 @@ WEB_TEST_SEED ?= $(if $(filter command line environment,$(origin TEST_SEED)),$(T
 
 ifeq ($(WEB_TESTNET),1)
 WEB_BUILD_DIR := build/web-signet
-WEB_EXTRA_TARGET := build/web-signet/send.html build/web-signet/jsQR.min.js build/web-signet/jsQR-LICENSE.txt
+WEB_EXTRA_TARGET := build/web-signet/airgap-trial.html build/web-signet/jsQR.min.js build/web-signet/jsQR-LICENSE.txt
 WEB_TEST_PSBT_H_DIR := $(CURDIR)/build/web-signet/inputs
 WEB_TEST_PSBT_H := build/web-signet/inputs/test_psbt.h
 
@@ -32,8 +32,8 @@ $(WEB_BUILD_DIR)/signer.html: FORCE_WEB_CONFIG build/parser_wasm.h build/font8x1
 	  -DTEST_PSBT_H_DIR=$(WEB_TEST_PSBT_H_DIR) -DCORE_SRC="$(strip $(CORE_SRC))" >/dev/null
 	ninja -C $(WEB_BUILD_DIR)
 
-build/web-signet/send.html: build/web-signet/signer.html web/send.html components/parts/parser/hosts/js/parser.mjs build/parser.wasm
-	cp web/send.html $@
+build/web-signet/airgap-trial.html: build/web-signet/signer.html web/airgap-trial.html components/parts/parser/hosts/js/parser.mjs build/parser.wasm
+	cp web/airgap-trial.html $@
 	cp components/parts/parser/hosts/js/parser.mjs build/web-signet/parser.mjs
 	cp build/parser.wasm build/web-signet/parser.wasm
 

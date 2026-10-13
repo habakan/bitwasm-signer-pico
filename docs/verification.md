@@ -6,7 +6,8 @@ the [README](../README.md#check-it-yourself); the process for rebuilding the pin
 
 ## Browser demo signet transaction
 
-The signet build's `send.html` embeds the browser signer and runs the transaction flow on one page.
+The signet build's `airgap-trial.html` simulates an AirGap transaction flow in the browser and
+broadcasts the completed transaction to Signet.
 It uses the built-in public BIP39 test seed, so only use valueless signet coins. Never load a real
 seed or use coins with value.
 
@@ -18,7 +19,7 @@ seed or use coins with value.
    python3 -m http.server 8000
    ```
 
-   Open `http://localhost:8000/send.html`. On the embedded signer, choose **Scan SeedQR** and scan
+   Open `http://localhost:8000/airgap-trial.html`. On the embedded signer, choose **Scan SeedQR** and scan
    the public test SeedQR displayed in step 1. The page derives its first BIP84
    receive address after the signer loads the seed.
 

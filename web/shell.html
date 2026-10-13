@@ -35,14 +35,21 @@ html.embedded .device { touch-action:none; }
 .device-screenframe { flex:1; min-width:0; padding:8px; border:1px solid #55524d; border-radius:12px; background:#11110f; box-shadow:inset 0 2px 8px #0009; }
 .screen-label { display:flex; justify-content:space-between; padding:0 1px 7px; color:#99958c; font:9px ui-monospace,monospace; letter-spacing:.1em; }
 canvas#lcd { width:100%; max-width:280px; aspect-ratio:1; image-rendering:pixelated; background:#000; border:1px solid #45433f; border-radius:4px; display:block; margin:auto; }
-.device-controls { display:flex; flex:none; align-items:center; justify-content:center; padding:0 2px; }
+.device-controls { display:flex; flex:none; flex-direction:column; align-items:center; justify-content:center; gap:7px; padding:0 2px; }
+.layout-switch { display:grid; grid-template-columns:1fr 1fr; gap:3px; width:100%; }
+.layout-switch button { min-height:24px; padding:2px 4px; border-radius:6px; font-size:9px; white-space:nowrap; }
+.layout-switch button[aria-pressed="true"] { border-color:#e6a928; background:linear-gradient(#645337,#393127); }
+.two-button-controls { display:none; gap:6px; }
+.two-button-controls button { width:54px; min-height:42px; padding:3px; font-size:10px; }
+.device-controls[data-layout="two-button"] .pad { display:none; }
+.device-controls[data-layout="two-button"] .two-button-controls { display:flex; }
 .pad { display:grid; grid-template-columns:repeat(3,38px); grid-template-rows:repeat(3,38px); gap:4px; }
 button { background:linear-gradient(#4d4b47,#292826); color:var(--key-fg); border:1px solid #64615b; border-radius:10px;
   font:600 13px system-ui; box-shadow:0 2px 3px #0008,inset 0 1px #ffffff20; cursor:pointer; touch-action:manipulation; }
 button:active { filter:brightness(1.4); transform:translateY(1px); }
 button:disabled { opacity: .45; cursor: default; }
 .pad button { min-width:0; padding:0; }
-.pad button[data-key="4"] { border-radius:50%; }
+.pad button[data-key="4"] { border-radius:50%; font-size:9px; }
 .device-status { display:flex; align-items:center; gap:8px; min-height:32px; padding:7px 9px 0; border-top:1px solid #ffffff17; color:#aaa69e; font-size:11px; }
 .status-led { width:7px; height:7px; flex:none; border-radius:50%; background:#d99000; box-shadow:0 0 8px #d9900088; }
 .camera-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -70,10 +77,18 @@ video { display: none; }
       <div class="screen-label"><span>SECURE DISPLAY</span><span>240 × 240</span></div>
       <canvas id="lcd" width="240" height="240" aria-label="ハードウェアウォレットの画面"></canvas>
     </div>
-    <div class="device-controls">
+    <div class="device-controls" id="device-controls" data-layout="five-way">
+      <div class="layout-switch" role="group" aria-label="操作方式">
+        <button type="button" data-layout-choice="two-button" aria-pressed="false">2ボタン</button>
+        <button type="button" data-layout-choice="five-way" aria-pressed="true">5方向キー</button>
+      </div>
+      <div class="two-button-controls" aria-label="2ボタン操作">
+        <button data-key="1" aria-label="次へ">次へ</button>
+        <button data-key="4" aria-label="決定">PUSH</button>
+      </div>
       <div class="pad" aria-label="方向パッド">
         <span></span><button data-key="0" aria-label="Up">&#9650;</button><span></span>
-        <button data-key="2" aria-label="Left">&#9664;</button><button data-key="4">OK</button><button data-key="3" aria-label="Right">&#9654;</button>
+        <button data-key="2" aria-label="Left">&#9664;</button><button data-key="4" aria-label="決定">PUSH</button><button data-key="3" aria-label="Right">&#9654;</button>
         <span></span><button data-key="1" aria-label="Down">&#9660;</button><span></span>
       </div>
     </div>
@@ -83,8 +98,7 @@ video { display: none; }
 <details class="service-panel">
   <summary>Signer details</summary>
   <div class="service-body">
-    <p class="help">Pico 2 firmware and signing core running in the browser. Joystick: <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd>, push: <kbd>Enter</kbd>.
-      Keys: <kbd>A</kbd>/<kbd>Esc</kbd> back or reject, <kbd>B</kbd>, <kbd>C</kbd>.</p>
+    <p class="help">Pico 2ファームウェアと署名コアをブラウザで実行しています。両方の操作方式で「次へ」で進み、「PUSH」で決定します。5方向キーでは前の画面にも戻れます。キーボード: ↓ / Nで次へ、Enterで決定、Escでキャンセル。</p>
     <button class="download" id="download" disabled>Download signed UR</button>
     <pre id="log"></pre>
   </div>
@@ -99,7 +113,9 @@ const video = document.getElementById('cam');
 const grab = Object.assign(document.createElement('canvas'), { width: 320, height: 240 }).getContext('2d', { willReadFrequently: true });
 const cameraLabel = document.getElementById('camera-label');
 const cameraLens = document.getElementById('camera-lens');
+const deviceControls = document.getElementById('device-controls');
 let shellLanguage = 'ja';
+let controlLayout = 'five-way';
 let stream = null, idle = 0, embeddedScanIdle = 0;
 let signedUR = new Map();
 const download = document.getElementById('download');
@@ -129,6 +145,13 @@ function applyLanguage(language) {
   shellLanguage = language === 'en' ? 'en' : 'ja';
   document.documentElement.lang = shellLanguage;
   translateShellTree(document.body);
+}
+
+function setControlLayout(layout) {
+  controlLayout = layout === 'two-button' ? 'two-button' : 'five-way';
+  deviceControls.dataset.layout = controlLayout;
+  document.querySelectorAll('[data-layout-choice]').forEach(button =>
+    button.setAttribute('aria-pressed', String(button.dataset.layoutChoice === controlLayout)));
 }
 
 function camera() {
@@ -542,9 +565,16 @@ download.addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
-const keymap = { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3, Enter: 4, ' ': 4, a: 5, Escape: 5, b: 6, c: 7 };
+const keymap = {
+  'five-way': { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3, Enter: 4, ' ': 4, Escape: 5 },
+  'two-button': { ArrowDown: 1, n: 1, Enter: 4, ' ': 4, Escape: 5 },
+};
+document.querySelectorAll('[data-layout-choice]').forEach(button =>
+  button.addEventListener('click', () => setControlLayout(button.dataset.layoutChoice)));
 addEventListener('keydown', e => {
-  const k = keymap[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+  if (e.target instanceof Element && e.target.closest('button,input,textarea,select,a,[contenteditable="true"]')) return;
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  const k = keymap[controlLayout][key];
   if (k === undefined || e.repeat) return;
   e.preventDefault();
   Module.keys.push(k);
