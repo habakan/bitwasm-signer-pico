@@ -21,9 +21,9 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { submodules: recursive }
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with: { enable-cache: false }
       - name: Dependencies (pinned by commit, the RISC-V toolchain by hash)
         run: |
@@ -47,7 +47,7 @@ jobs:
           cp build/parser.wasm dist/
           cd dist && sha256sum bitwasm-signer-pico.uf2 bitwasm-signer-pico-signet.uf2 parser.wasm > SHA256SUMS && cat SHA256SUMS
 
-      - uses: actions/attest-build-provenance@v4
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             dist/bitwasm-signer-pico.uf2
@@ -76,7 +76,7 @@ jobs:
             echo "Reproduce the UF2s: check out this tag, \`make deps\`, then build as above."
             echo "The same bytes come out on macOS arm64 and Linux x86_64."
             echo
-            echo "Provenance: \`gh attestation verify bitwasm-signer-pico.uf2 --repo $REPO\`"
+            echo "Provenance: \`gh attestation verify bitwasm-signer-pico.uf2 --repo $REPO --cert-identity https://github.com/$REPO/.github/workflows/release.yml@refs/tags/$TAG --deny-self-hosted-runners\`"
             echo
             echo "A detached PGP signature over SHA256SUMS is attached when the maintainer signs the release."
           } > notes.md

@@ -52,8 +52,8 @@ check-repro: tools/build/toolchain.sh checksums.txt
 	  RTLIB=$(CURDIR)/$(SDK)/lib/clang/23/lib/wasm32-unknown-wasi \
 	  WASM_OPT=$(CURDIR)/build/toolchain/binaryen-version_132/bin/wasm-opt
 	@(shasum -a 256 $(REPRO_WASM) 2>/dev/null || sha256sum $(REPRO_WASM)) > /tmp/repro.txt
-	@diff /tmp/repro.txt checksums.txt && echo "すべて一致した（再現可能）" \
-	  || { echo "一致しない。docs/reproducible-build.md を見る"; exit 1; }
+	@diff /tmp/repro.txt checksums.txt && echo "all match (reproducible)" \
+	  || { echo "mismatch; see docs/reproducible-build.md"; exit 1; }
 .PHONY: check-repro
 
 check-parser:
@@ -69,5 +69,9 @@ PARSER_BIN := build/parser.$(if $(filter 1,$(PARSER_AOT)),aot,wasm)
 build/parser.aot: build/parser.wasm $(WAMRC)
 	$(WAMRC) $(WAMRC_RAM_FLAGS) -o $@ $< >/dev/null
 
-build/parser_wasm.h: $(PARSER_BIN)
+# The firmware embeds only a parser.wasm listed in checksums.txt, whichever build path made it.
+build/parser_wasm.h: $(PARSER_BIN) build/parser.wasm checksums.txt
+	@grep ' build/parser.wasm$$' checksums.txt > build/parser.wasm.sha256
+	@(shasum -a 256 -c build/parser.wasm.sha256 2>/dev/null || sha256sum -c build/parser.wasm.sha256) \
+	  || { echo "build/parser.wasm does not match checksums.txt; rebuild it with make check-repro"; exit 1; }
 	xxd -i -n parser_wasm $< | sed 's/^unsigned char/const unsigned char/' > $@
