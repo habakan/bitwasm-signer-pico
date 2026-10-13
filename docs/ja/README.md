@@ -80,12 +80,16 @@ make run TESTNET=1 SECONDS=180    # signet 用
 ### ブラウザ版のビルド
 
 ```sh
-make web                          # Emscripten が必要。build/web/signer.html を出力
+make web                          # signet 用。signer.html と send.html を出力
+make web TESTNET=0                # mainnet 用
 ```
 
+signet ビルドの `send.html` はソフトウェアウォレット風の送金画面と署名器を1ページに埋め込み、PSBT作成から署名・ブロードキャストまで進めます。公開テストSeedQRをStep 1に表示し、署名器側の「Scan SeedQR」で読み込んでから送金を作成します。PSBTのアニメーションQRはウォレット内に表示し、署名器側で「Scan PSBT」を選んで読み込みます。タイトルバーをドラッグしてウォレットの位置を動かせます。公開テストシードを使うデモなので、価値のあるコインは絶対に使わないでください。
+
 実機と同じ `main.c`、レビュー画面、署名コア、WAMR 上の `parser.wasm` を WebAssembly にしたものです。
-置き換えているのは LCD、ボタン、カメラだけです（`web/hal.c`）。`TEST_SEED=1` のデモで署名デバイスではないため、
-本物の SeedQR は読ませないでください。
+置き換えているのは LCD、ボタン、カメラだけです（`web/hal.c`）。署名デバイスではないため、実際のウォレットの SeedQR は読ませないでください。
+使い捨て BIP39 seed を使い、パスフレーズは設定しないでください（未対応）。
+サインネットでの一巡手順は[検証手順](../verification.md#browser-demo-signet-transaction)をご覧ください。
 
 ## ビルドと検証
 

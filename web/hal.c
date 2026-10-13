@@ -69,7 +69,10 @@ void camera_bus_init(const camera_model_t *model) {
 
 bool camera_init(const camera_model_t *model) {
     (void)model;
-    return EM_ASM_INT({ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); });
+    return EM_ASM_INT({
+        return Module.isEmbedded() ? Module.canUseParentQr()
+                                   : !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    });
 }
 
 /* The scan loops call this back to back, so it waits a frame's time before taking one */

@@ -91,12 +91,15 @@ Known limitations and operational constraints are in [docs/limitations.md](docs/
 ### Build the browser demo
 
 ```sh
-make web                          # needs Emscripten; writes build/web/signer.html
+make web                          # signet build; needs Emscripten; writes signer.html and send.html
+make web TESTNET=0                # mainnet build
 ```
 
-The same `main.c`, review screens, signing core and `parser.wasm` on WAMR, compiled to WebAssembly. Only
-the LCD, buttons and camera are replaced (`web/hal.c`). It is built with `TEST_SEED=1` and is a demo, not
-a signing device: never scan a real SeedQR into it.
+The same `main.c`, review screens, signing core and `parser.wasm` on WAMR, compiled to WebAssembly. The
+signet `send.html` embeds the signer and can create, review, sign, finalize and broadcast a one-input
+transaction in one page. It uses the public BIP39 test seed and is a demo, not a signing device: never
+use it for coins with value. For the walkthrough, see
+[the browser signet procedure](docs/verification.md#browser-demo-signet-transaction).
 
 ## Check it yourself
 

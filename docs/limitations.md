@@ -63,9 +63,9 @@ Not reviewed by a third party. signet only. See [Disclaimer](../README.md#discla
 
 - Animated QR uses UR (BCR-2020-005) fountain encoding; fragments are 100 bytes so each frame stays
   at QR version 8, which is what a phone camera can read from a 240x240 display.
-- A PSBT whose previous transactions are large may not fit. Strip `non_witness_utxo` for segwit
-  inputs (`tools/psbt/strip_psbt.py`); a faucet transaction with 2,323 outputs made a PSBT of 77KB,
-  which is 770 QR frames.
+- A PSBT whose previous transactions are large may not fit. For a single-signature SegWit input,
+  omitting `non_witness_utxo` when `witness_utxo` is present can reduce its size; a faucet
+  transaction with 2,323 outputs made a PSBT of 77KB, which is 770 QR frames.
 - The device's quirc decoder needs the code to fill most of the frame and cannot read a display from
   across a room.
 - A QR decoder is not a trust boundary. Whatever it produces is parsed and re-validated.

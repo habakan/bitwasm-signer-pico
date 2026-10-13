@@ -117,6 +117,30 @@ static void show_preview(const uint8_t *img, const char *status) {
 #endif
 }
 
+static void receive_psbt_part(const char *part, uint32_t part_len, int32_t *rc, unsigned int *parts, uint64_t *seen,
+                              uint32_t *len, uint8_t *out, char *status, size_t status_cap) {
+    unsigned int seq = 0, seq_len = 0;
+    for (uint32_t i = 0; i < part_len; i++)
+        if (part[i] == '/') {
+            while (++i < part_len && part[i] >= '0' && part[i] <= '9') seq = seq * 10 + (unsigned int)(part[i] - '0');
+            if (i < part_len && part[i] == '-')
+                while (++i < part_len && part[i] >= '0' && part[i] <= '9')
+                    seq_len = seq_len * 10 + (unsigned int)(part[i] - '0');
+            break;
+        }
+    if (!parser_host_ur_receive(part, part_len, rc, out, PARSER_PSBT_MAX)) {
+        snprintf(status, status_cap, "QR read, not a PSBT");
+    } else if (*rc > 0) {
+        *len = (uint32_t)*rc;
+    } else if (*rc == 0) {
+        if (seq && seq <= 64 && !(*seen >> (seq - 1) & 1)) *seen |= (uint64_t)1 << (seq - 1), (*parts)++;
+        if (seq_len) snprintf(status, status_cap, "Scan PSBT  %u/%u parts", *parts, seq_len);
+        else snprintf(status, status_cap, "Scan PSBT  %u parts", *parts);
+    } else {
+        snprintf(status, status_cap, "UR error %d", (int)*rc);
+    }
+}
+
 /* Reads an animated QR and reassembles the PSBT. Returns its length, or 0 if cancelled or failed */
 static uint32_t scan_psbt(void) {
     struct quirc *q;
@@ -145,35 +169,14 @@ static uint32_t scan_psbt(void) {
             static struct quirc_code code;
             static struct quirc_data data;
             int32_t rc = 0;
-            unsigned int seq = 0, seq_len = 0;
             quirc_extract(q, i, &code);
             found = 1;
             if (quirc_decode(&code, &data)) {
                 snprintf(status, sizeof(status), "QR found, cannot read");
                 continue;
             }
-            /* n and m out of "UR:CRYPTO-PSBT/<n>-<m>/", to show how many of how many */
-            for (const char *c = (const char *)data.payload; *c; c++)
-                if (*c == '/') {
-                    while (*++c >= '0' && *c <= '9') seq = seq * 10 + (unsigned int)(*c - '0');
-                    if (*c == '-')
-                        while (*++c >= '0' && *c <= '9') seq_len = seq_len * 10 + (unsigned int)(*c - '0');
-                    break;
-                }
-            if (!parser_host_ur_receive((const char *)data.payload, (uint32_t)data.payload_len, &rc, psbt,
-                                        PARSER_PSBT_MAX)) {
-                snprintf(status, sizeof(status), "QR read, not a PSBT");
-                continue;
-            }
-            if (rc > 0) {
-                len = (uint32_t)rc;
-            } else if (rc == 0) {
-                if (seq && seq <= 64 && !(seen >> (seq - 1) & 1)) seen |= (uint64_t)1 << (seq - 1), parts++;
-                if (seq_len) snprintf(status, sizeof(status), "Scan PSBT  %u/%u parts", parts, seq_len);
-                else snprintf(status, sizeof(status), "Scan PSBT  %u parts", parts);
-            } else {
-                snprintf(status, sizeof(status), "UR error %d", (int)rc);
-            }
+            receive_psbt_part((const char *)data.payload, (uint32_t)data.payload_len, &rc, &parts, &seen, &len, psbt,
+                              status, sizeof(status));
         }
         if (!found && parts == 0) snprintf(status, sizeof(status), "Scan PSBT: no QR in view");
     }
@@ -240,6 +243,7 @@ static void sign_flow(const uint8_t *in, uint32_t in_len) {
     core_review_t review;
     core_display_t display;
     core_sig_t sigs[PLAN_MAX_INPUTS];
+    uint8_t nonces[PLAN_MAX_INPUTS][33]; /* the coordinator's n going in, then Q coming out */
     uint32_t rc = 0, out_len = 0;
     unsigned int n_sigs = 0;
     uint64_t t;
@@ -277,12 +281,16 @@ static void sign_flow(const uint8_t *in, uint32_t in_len) {
     if (decision == UI_REJECTED) return sign_buffers_give(), message("Canceled", NULL, 0);
 
     t = time_us_64();
+    if (!parser_host_nonces(nonces)) return sign_buffers_give(), message("Finalize failed", NULL, 1);
+    for (unsigned int i = 0; i < PLAN_MAX_INPUTS; i++)
+        if (nonces[i][0] == 1) core_set_host_nonce(i, nonces[i] + 1);
     if ((err = core_sign(&plan, trng, sigs, &n_sigs)) != CORE_OK) {
         printf("sign err=%d\n", err);
         return sign_buffers_give(), message("Sign failed", NULL, 1);
     }
     printf("sign %llu us (%u inputs)\n", (unsigned long long)(time_us_64() - t), n_sigs);
-    if (!parser_host_finalize(sigs, n_sigs, signed_psbt, SIGNED_PSBT_MAX, &out_len))
+    for (unsigned int k = 0; k < PLAN_MAX_INPUTS; k++) memcpy(nonces[k], core_nonce_point(k), 33);
+    if (!parser_host_set_points(nonces) || !parser_host_finalize(sigs, n_sigs, signed_psbt, SIGNED_PSBT_MAX, &out_len))
         return sign_buffers_give(), message("Finalize failed", NULL, 1);
 
     printf("signed psbt (%u bytes):\n", (unsigned int)out_len);
@@ -341,7 +349,13 @@ static int scan_seed(void) {
     wipe(&data, sizeof(data));
     wipe(mnemonic, sizeof(mnemonic));
     wipe(seed, sizeof(seed));
-    if (ok) printf("seed from SeedQR, fingerprint %08x\n", (unsigned int)core_fingerprint());
+    if (ok) {
+        printf("seed from SeedQR, fingerprint %08x\n", (unsigned int)core_fingerprint());
+#if defined(__EMSCRIPTEN__)
+        char xpub[CORE_XPUB_MAX], desc[CORE_DESC_MAX];
+        if (core_account_xpub(84, 0, xpub, desc) == CORE_OK) printf("wallet descriptor: %s\n", desc);
+#endif
+    }
     return ok;
 }
 
@@ -359,6 +373,12 @@ static int load_test_seed(void) {
     memset(seed, 0, sizeof(seed));
     printf("seed %llu us, fingerprint %08x\n", (unsigned long long)(time_us_64() - t),
            (unsigned int)core_fingerprint());
+#if defined(__EMSCRIPTEN__)
+    if (ok) {
+        char xpub[CORE_XPUB_MAX], desc[CORE_DESC_MAX];
+        if (core_account_xpub(84, 0, xpub, desc) == CORE_OK) printf("wallet descriptor: %s\n", desc);
+    }
+#endif
     return ok;
 }
 #endif

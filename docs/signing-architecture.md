@@ -404,8 +404,8 @@ sign -> signed PSBT -> 10 UR parts out
 - While reading, the camera image goes to the panel with how many of how many parts, and what is being
   detected (`no QR in view` / `QR found, cannot read`), on the first line. Without being able to aim it
   is not usable
-- `tools/psbt/show_ur.py` turns the UR's parts into an animated GIF, so a PC screen can present it to the
-  camera. The UR for an unsigned PSBT comes from `psbt_host bin2ur`
+- The host can display an unsigned PSBT's UR as an animated QR for the device camera; `psbt_host
+  bin2ur` creates the UR fragments.
 - The menu is `Scan PSBT`, `Sign test PSBT` (only in a TEST_SEED build) and `Lock`
 
 ## 13. SeedQR (2026-10-02)

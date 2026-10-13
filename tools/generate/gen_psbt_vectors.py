@@ -13,6 +13,9 @@ root = bip32.HDKey.from_seed(hashlib.pbkdf2_hmac("sha512", MN.encode(), b"mnemon
 FP = root.my_fingerprint
 H = 0x80000000
 out_dir = sys.argv[1]
+coin_type = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+if coin_type not in (0, 1):
+    raise SystemExit("coin type must be 0 (mainnet) or 1 (testnet/signet)")
 os.makedirs(out_dir, exist_ok=True)
 
 def key(path):
@@ -56,8 +59,8 @@ def build(name, inputs, outputs):
             o.bip32_derivations[key(path)] = DerivationPath(FP, path_list(path))
     open(os.path.join(out_dir, name + ".psbt"), "wb").write(psbt.serialize())
 
-A = "m/84h/0h/0h"
-T = "m/86h/0h/0h"
+A = f"m/84h/{coin_type}h/0h"
+T = f"m/86h/{coin_type}h/0h"
 build("own_p2wpkh_1in", [(A + "/0/0", 100000, 0, False)], [(None, 60000), (A + "/1/0", 39000)])
 build("own_p2wpkh_2in_nwu", [(A + "/0/0", 100000, 1, True), (A + "/0/1", 50000, 0, True)],
       [(None, 60000), (A + "/1/0", 89000)])

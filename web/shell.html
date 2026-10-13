@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>jitsu-in-pico Demo</title>
+<title>jitsu-in-pico HWW</title>
 <style>
-:root { --bg: #f4f2ee; --fg: #1d1c1a; --muted: #6b6760; --panel: #ffffff; --line: #d9d5cd;
+:root { color-scheme: light dark; --bg: #f4f2ee; --fg: #1d1c1a; --muted: #6b6760; --panel: #ffffff; --line: #d9d5cd;
   --body: #2b2a28; --key: #3d3b38; --key-fg: #f4f2ee; --warn-bg: #fdecc8; --warn-fg: #6a4500; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #161514; --fg: #ece9e3;
   --muted: #9c978e; --panel: #201f1d; --line: #34322f; --body: #0d0d0c; --key: #3a3835;
@@ -13,63 +13,82 @@
 :root[data-theme="dark"] { --bg: #161514; --fg: #ece9e3; --muted: #9c978e; --panel: #201f1d;
   --line: #34322f; --body: #0d0d0c; --key: #3a3835; --warn-bg: #3b2c0c; --warn-fg: #f3d290; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
-main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
-h1 { font-size: 22px; margin: 0 0 4px; }
-.title { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.title a { color: var(--muted); }
-.title a:hover { color: var(--fg); }
+html, body { background-color: transparent; }
+body { margin: 0; color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }
+main { max-width: 500px; margin: 0 auto; padding: 12px; }
+html.embedded .service-panel { display:none; }
 p { margin: 0 0 12px; color: var(--muted); }
-.warn { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: 10px 14px; margin: 12px 0 20px; }
-.layout { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
-.device { background: var(--body); border-radius: 20px; padding: 20px; display: flex; gap: 20px;
-  align-items: center; flex-wrap: wrap; justify-content: center; max-width: 100%; }
-canvas#lcd { width: 360px; max-width: 100%; aspect-ratio: 1; image-rendering: pixelated; background: #000;
-  border-radius: 4px; display: block; }
-.controls { display: flex; gap: 20px; align-items: center; }
-.pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 4px; }
-.keys { display: flex; flex-direction: column; gap: 10px; }
-button { background: var(--key); color: var(--key-fg); border: 0; border-radius: 10px; font: 600 14px system-ui;
-  cursor: pointer; touch-action: manipulation; }
-button:active { filter: brightness(1.4); }
-.keys button { width: 64px; height: 44px; border-radius: 22px; }
-.side { flex: 1; min-width: 280px; }
-.help { font-size: 14px; color: var(--muted); }
+.device { max-width:100%; padding:14px; border:1px solid #56534e; border-radius:22px;
+  background:linear-gradient(145deg,#343330 0%,#1c1b19 42%,#292825 100%); box-shadow:0 16px 36px #0005,inset 0 1px #ffffff1c; cursor:grab; }
+.device.dragging, .device.dragging * { user-select:none; }
+.device.dragging { cursor:grabbing; }
+html.embedded .device { touch-action:none; }
+.device-top { min-height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 8px 10px; cursor:grab; touch-action:none; user-select:none; }
+.device-top:active { cursor:grabbing; }
+.device-top:focus-visible { outline:2px solid #e6a928; outline-offset:-2px; border-radius:8px; }
+.device-id { color:#aaa69e; font:10px ui-monospace,monospace; letter-spacing:.12em; }
+.camera-lens { position:relative; width:48px; height:48px; display:grid; place-items:center; border:1px solid #77736a;
+  border-radius:50%; background:radial-gradient(circle at 42% 35%,#9ab1bb 0 5%,#35515e 8% 20%,#10191e 26% 43%,#69665e 46% 52%,#252421 56%); box-shadow:0 2px 8px #0009,inset 0 0 0 3px #22211f; }
+.camera-lens::after { content:""; position:absolute; inset:15px; border:1px solid #b7d5de66; border-radius:50%; }
+.lens-mark { position:absolute; right:-37px; color:#aaa69e; font:9px ui-monospace,monospace; letter-spacing:.1em; }
+.device-main { display:flex; align-items:center; gap:12px; }
+.device-screenframe { flex:1; min-width:0; padding:8px; border:1px solid #55524d; border-radius:12px; background:#11110f; box-shadow:inset 0 2px 8px #0009; }
+.screen-label { display:flex; justify-content:space-between; padding:0 1px 7px; color:#99958c; font:9px ui-monospace,monospace; letter-spacing:.1em; }
+canvas#lcd { width:100%; max-width:280px; aspect-ratio:1; image-rendering:pixelated; background:#000; border:1px solid #45433f; border-radius:4px; display:block; margin:auto; }
+.device-controls { display:flex; flex:none; align-items:center; justify-content:center; padding:0 2px; }
+.pad { display:grid; grid-template-columns:repeat(3,38px); grid-template-rows:repeat(3,38px); gap:4px; }
+button { background:linear-gradient(#4d4b47,#292826); color:var(--key-fg); border:1px solid #64615b; border-radius:10px;
+  font:600 13px system-ui; box-shadow:0 2px 3px #0008,inset 0 1px #ffffff20; cursor:pointer; touch-action:manipulation; }
+button:active { filter:brightness(1.4); transform:translateY(1px); }
+button:disabled { opacity: .45; cursor: default; }
+.pad button { min-width:0; padding:0; }
+.pad button[data-key="4"] { border-radius:50%; }
+.device-status { display:flex; align-items:center; gap:8px; min-height:32px; padding:7px 9px 0; border-top:1px solid #ffffff17; color:#aaa69e; font-size:11px; }
+.status-led { width:7px; height:7px; flex:none; border-radius:50%; background:#d99000; box-shadow:0 0 8px #d9900088; }
+.camera-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.service-panel { margin-top:12px; color:var(--muted); font-size:12px; }
+.service-panel summary { width:max-content; cursor:pointer; }
+.service-body { padding:10px 2px 0; }
+.download { padding: 8px 12px; margin-top: 10px; }
+.help { font-size: 12px; color: var(--muted); }
 .help kbd { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: 12px; }
-pre#log { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; height: 320px;
-  overflow: auto; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
+pre#log { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; max-height:220px;
+  overflow:auto; font:11px/1.4 ui-monospace,monospace; white-space:pre-wrap; word-break:break-all; margin:8px 0 0; }
 video { display: none; }
+@media (max-width:420px) { main { padding:8px; } .device { padding:10px; } .device-main { gap:8px; } .pad { grid-template-columns:repeat(3,34px); grid-template-rows:repeat(3,34px); } }
 </style>
+<script>if (window.parent !== window) document.documentElement.classList.add('embedded');</script>
 </head>
 <body>
 <main>
-<div class="title">
-<h1>jitsu-in-pico in the browser</h1>
-<a href="https://github.com/habakan/jitsu-in-pico" target="_blank" rel="noopener noreferrer">GitHub repository</a>
-</div>
-<p>The Pico 2 firmware's <code>main.c</code>, review screens and signing core, with <code>parser.wasm</code> running on
-the same WAMR interpreter, compiled to WebAssembly. Only the LCD, buttons and camera are replaced.</p>
-<div class="warn">Demo only. Use the test seed. Never scan a real SeedQR here: a browser tab is not a signing device.</div>
-<div class="layout">
-  <div class="device">
-    <canvas id="lcd" width="240" height="240"></canvas>
-    <div class="controls">
-      <div class="pad">
+<section class="device" aria-label="jitsu-in-pico hardware wallet">
+  <div class="device-top" id="device-drag-handle" role="group" tabindex="0" aria-label="ドラッグまたは矢印キーでHWWを移動">
+    <div class="camera-lens" id="camera-lens" role="img" aria-label="仮想カメラレンズ"><span class="lens-mark">CAM</span></div><span class="device-id">JITSU · HWW-01</span>
+  </div>
+  <div class="device-main">
+    <div class="device-screenframe">
+      <div class="screen-label"><span>SECURE DISPLAY</span><span>240 × 240</span></div>
+      <canvas id="lcd" width="240" height="240" aria-label="ハードウェアウォレットの画面"></canvas>
+    </div>
+    <div class="device-controls">
+      <div class="pad" aria-label="方向パッド">
         <span></span><button data-key="0" aria-label="Up">&#9650;</button><span></span>
         <button data-key="2" aria-label="Left">&#9664;</button><button data-key="4">OK</button><button data-key="3" aria-label="Right">&#9654;</button>
         <span></span><button data-key="1" aria-label="Down">&#9660;</button><span></span>
       </div>
-      <!-- B and C have no role in the firmware yet, so only A is shown -->
-      <div class="keys"><button data-key="5">Close</button></div>
     </div>
   </div>
-  <div class="side">
-    <div class="help">Joystick: <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd>, push: <kbd>Enter</kbd>.
-      Close: <kbd>Esc</kbd>, back or reject.
-      Start with "Use test seed", then "Sign test PSBT". "Scan PSBT" reads an animated QR from the camera.</div>
+  <div class="device-status"><span class="status-led" aria-hidden="true"></span><span class="camera-label" id="camera-label">仮想カメラ · QR待機中</span></div>
+</section>
+<details class="service-panel">
+  <summary>Signer details</summary>
+  <div class="service-body">
+    <p class="help">Pico 2 firmware and signing core running in the browser. Joystick: <kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd>, push: <kbd>Enter</kbd>.
+      Keys: <kbd>A</kbd>/<kbd>Esc</kbd> back or reject, <kbd>B</kbd>, <kbd>C</kbd>.</p>
+    <button class="download" id="download" disabled>Download signed UR</button>
     <pre id="log"></pre>
   </div>
-</div>
+</details>
 <video id="cam" playsinline muted></video>
 </main>
 <script>
@@ -78,7 +97,39 @@ const img = lcd.createImageData(240, 240);
 const log = document.getElementById('log');
 const video = document.getElementById('cam');
 const grab = Object.assign(document.createElement('canvas'), { width: 320, height: 240 }).getContext('2d', { willReadFrequently: true });
-let stream = null, idle = 0;
+const cameraLabel = document.getElementById('camera-label');
+const cameraLens = document.getElementById('camera-lens');
+let shellLanguage = 'ja';
+let stream = null, idle = 0, embeddedScanIdle = 0;
+let signedUR = new Map();
+const download = document.getElementById('download');
+
+function translateShellText(value) {
+  try { return window.parent.jitsuTranslate?.(value, shellLanguage) || value; }
+  catch { return value; }
+}
+
+function translateShellTree(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const translated = translateShellText(node.nodeValue);
+    if (translated !== node.nodeValue) node.nodeValue = translated;
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  for (const attribute of ['aria-label', 'title', 'placeholder', 'alt'])
+    if (node.hasAttribute(attribute)) node.setAttribute(attribute, translateShellText(node.getAttribute(attribute)));
+  for (const child of node.childNodes) translateShellTree(child);
+}
+
+function renderCameraStatus(text) {
+  cameraLabel.textContent = translateShellText(text);
+}
+
+function applyLanguage(language) {
+  shellLanguage = language === 'en' ? 'en' : 'ja';
+  document.documentElement.lang = shellLanguage;
+  translateShellTree(document.body);
+}
 
 function camera() {
   if (stream) return;
@@ -86,6 +137,274 @@ function camera() {
     .then(s => { video.srcObject = s; video.play(); return s; })
     .catch(e => { Module.print('camera: ' + e.message); stream = null; });
 }
+
+function parentRect(rect) {
+  const frame = window.frameElement;
+  const frameRect = frame.getBoundingClientRect();
+  const scaleX = frame.clientWidth / window.innerWidth;
+  const scaleY = frame.clientHeight / window.innerHeight;
+  return {
+    left: frameRect.left + frame.clientLeft + rect.left * scaleX,
+    top: frameRect.top + frame.clientTop + rect.top * scaleY,
+    width: rect.width * scaleX,
+    height: rect.height * scaleY,
+  };
+}
+
+function parentPoint(point) {
+  const frame = window.frameElement;
+  const frameRect = frame.getBoundingClientRect();
+  return {
+    x: frameRect.left + frame.clientLeft + point.x * frame.clientWidth / window.innerWidth,
+    y: frameRect.top + frame.clientTop + point.y * frame.clientHeight / window.innerHeight,
+  };
+}
+
+function cameraLensPoint() {
+  const rect = parentRect(cameraLens.getBoundingClientRect());
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+function cameraFrameRect() {
+  const lens = cameraLensPoint();
+  const frame = window.frameElement;
+  const scaleX = frame.clientWidth / window.innerWidth;
+  const scaleY = frame.clientHeight / window.innerHeight;
+  const width = 320 * scaleX, height = 240 * scaleY;
+  return { left: lens.x - width - 12 * scaleX, top: lens.y - height / 2, width, height };
+}
+
+const scene = Object.assign(document.createElement('canvas'), { width: 320, height: 240 });
+const sceneContext = scene.getContext('2d', { willReadFrequently: true });
+let scenePending = false, sceneReady = false, sceneFailed = false, sceneError = '', sceneRequestedAt = 0, sceneView = null;
+
+function sameSceneView(a, b) {
+  return a && b && a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
+}
+
+function renderFrameView(frame) {
+  return new Promise(resolve => {
+    const source = frame.contentDocument, child = frame.contentWindow;
+    if (!source || !child?.innerWidth || !child.innerHeight) return resolve(null);
+    try {
+      const clone = source.documentElement.cloneNode(true);
+      clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+      const sourceElements = source.documentElement.querySelectorAll('*'), cloneElements = clone.querySelectorAll('*');
+      sourceElements.forEach((element, index) => {
+        const copy = cloneElements[index];
+        if (!copy || (!element.scrollTop && !element.scrollLeft)) return;
+        for (const nested of copy.children)
+          nested.style.transform = `translate(${-element.scrollLeft}px, ${-element.scrollTop}px) ${nested.style.transform || ''}`.trim();
+      });
+      clone.querySelectorAll('script, video').forEach(el => el.remove());
+      const sourceCanvases = source.querySelectorAll('canvas'), cloneCanvases = clone.querySelectorAll('canvas');
+      sourceCanvases.forEach((canvas, index) => {
+        const copy = cloneCanvases[index];
+        if (!copy) return;
+        try {
+          const image = clone.ownerDocument.createElement('img');
+          for (const attr of copy.attributes) image.setAttribute(attr.name, attr.value);
+        const style = child.getComputedStyle(canvas);
+        image.style.cssText = [...style].map(name => `${name}:${style.getPropertyValue(name)}`).join(';');
+          image.setAttribute('src', canvas.toDataURL());
+          copy.replaceWith(image);
+        } catch {}
+      });
+      const sourceFields = source.querySelectorAll('input, textarea, select'), cloneFields = clone.querySelectorAll('input, textarea, select');
+      sourceFields.forEach((field, index) => {
+        const copy = cloneFields[index];
+        if (!copy) return;
+        if (field.tagName === 'TEXTAREA') copy.textContent = field.value;
+        else if (field.tagName === 'SELECT') [...copy.options].forEach((option, i) => option.selected = field.selectedIndex === i);
+        else {
+          copy.setAttribute('value', field.value);
+          if (field.checked) copy.setAttribute('checked', ''); else copy.removeAttribute('checked');
+        }
+      });
+      const width = child.innerWidth, height = child.innerHeight;
+      const documentHeight = Math.max(height, source.documentElement.scrollHeight);
+      const style = clone.ownerDocument.createElement('style');
+      style.textContent = `html{width:${width}px!important;height:auto!important;overflow:visible!important}body{position:absolute!important;left:${-child.scrollX}px!important;top:${-child.scrollY}px!important;width:${width}px!important;min-height:${documentHeight}px!important;overflow:visible!important}*,*::before,*::after{animation:none!important;caret-color:transparent!important}`;
+      clone.querySelector('head')?.append(style);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', String(width)); svg.setAttribute('height', String(height));
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.setAttribute('preserveAspectRatio', 'none');
+      const foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+      foreign.setAttribute('width', String(width)); foreign.setAttribute('height', String(height));
+      foreign.append(clone); svg.append(foreign);
+      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml;charset=utf-8' }));
+      const image = new Image();
+      image.onload = () => {
+        try {
+          const view = Object.assign(document.createElement('canvas'), { width, height });
+          view.getContext('2d').drawImage(image, 0, 0, width, height);
+          URL.revokeObjectURL(url);
+          resolve(view);
+        } catch {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        }
+      };
+      image.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      image.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+function requestSceneFrame(view) {
+  const now = performance.now();
+  if (scenePending && now - sceneRequestedAt > 3000) { scenePending = false; sceneFailed = true; sceneError = '仮想カメラ映像の生成がタイムアウトしました。'; }
+  if (sceneFailed || scenePending || (sameSceneView(sceneView, view) && now - sceneRequestedAt < 100)) return;
+  sceneRequestedAt = now;
+  scenePending = true;
+  const requestedView = { ...view };
+  let url = null;
+  try {
+    const source = window.parent.document;
+    const clone = source.documentElement.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    const sourceElements = source.documentElement.querySelectorAll('*'), cloneElements = clone.querySelectorAll('*');
+    sourceElements.forEach((element, index) => {
+      const copy = cloneElements[index];
+      if (!copy || element === source.body || (!element.scrollTop && !element.scrollLeft)) return;
+      for (const child of copy.children)
+        child.style.transform = `translate(${-element.scrollLeft}px, ${-element.scrollTop}px) ${child.style.transform || ''}`.trim();
+    });
+    clone.querySelectorAll('script, #camera-beam').forEach(el => el.remove());
+    const originalCanvases = source.querySelectorAll('canvas');
+    const clonedCanvases = clone.querySelectorAll('canvas');
+    originalCanvases.forEach((canvas, index) => {
+      const copy = clonedCanvases[index];
+      if (!copy) return;
+      try {
+        const image = clone.ownerDocument.createElement('img');
+        for (const attr of copy.attributes) image.setAttribute(attr.name, attr.value);
+        image.setAttribute('src', canvas.toDataURL());
+        copy.replaceWith(image);
+      } catch {}
+    });
+    clone.querySelector('#receive-preview')?.replaceWith(clone.ownerDocument.createElement('div'));
+    const originalFields = source.querySelectorAll('input, textarea, select');
+    const clonedFields = clone.querySelectorAll('input, textarea, select');
+    originalFields.forEach((field, index) => {
+      const copy = clonedFields[index];
+      if (!copy) return;
+      if (field.tagName === 'TEXTAREA') copy.textContent = field.value;
+      else if (field.tagName === 'SELECT') [...copy.options].forEach((option, i) => option.selected = field.selectedIndex === i);
+      else {
+        copy.setAttribute('value', field.value);
+        if (field.checked) copy.setAttribute('checked', ''); else copy.removeAttribute('checked');
+      }
+    });
+    const width = source.defaultView.innerWidth, height = source.defaultView.innerHeight;
+    const documentHeight = Math.max(height, source.documentElement.scrollHeight);
+    const style = clone.ownerDocument.createElement('style');
+    style.textContent = `html{width:${width}px!important;height:auto!important;overflow:visible!important}body{position:absolute!important;left:${-source.defaultView.scrollX}px!important;top:${-source.defaultView.scrollY}px!important;width:${width}px!important;min-height:${documentHeight}px!important;overflow:visible!important}*,*::before,*::after{animation:none!important;caret-color:transparent!important}`;
+    clone.querySelector('head')?.append(style);
+    const sourceFrames = [...source.querySelectorAll('iframe')], cloneFrames = [...clone.querySelectorAll('iframe')];
+    const frameViews = sourceFrames.map((frame, index) => {
+      const rect = frame.getBoundingClientRect();
+      const copy = cloneFrames[index], placeholder = clone.ownerDocument.createElement('div');
+      for (const attr of ['id', 'class', 'style'])
+        if (copy.hasAttribute(attr)) placeholder.setAttribute(attr, copy.getAttribute(attr));
+      const style = source.defaultView.getComputedStyle(frame);
+      placeholder.style.cssText = [...style].map(name => `${name}:${style.getPropertyValue(name)}`).join(';');
+      placeholder.setAttribute('aria-hidden', 'true');
+      copy.replaceWith(placeholder);
+      return { rect: { left: rect.left + frame.clientLeft, top: rect.top + frame.clientTop,
+        width: frame.clientWidth, height: frame.clientHeight }, snapshot: renderFrameView(frame) };
+    });
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '320'); svg.setAttribute('height', '240');
+    svg.setAttribute('viewBox', `${requestedView.left} ${requestedView.top} ${requestedView.width} ${requestedView.height}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    const foreign = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+    foreign.setAttribute('width', String(width)); foreign.setAttribute('height', String(height));
+    foreign.append(clone); svg.append(foreign);
+    url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml;charset=utf-8' }));
+    const image = new Image();
+    image.onload = () => {
+      Promise.all(frameViews.map(async ({ rect, snapshot }) => ({ rect, snapshot: await snapshot }))).then(frames => {
+        if (frames.some(({ snapshot }) => !snapshot)) {
+          sceneFailed = true;
+          sceneError = '署名器の表示を仮想カメラ映像に合成できませんでした。';
+          return;
+        }
+        sceneContext.drawImage(image, 0, 0, 320, 240);
+        for (const { rect: content, snapshot } of frames) {
+          const left = Math.max(content.left, requestedView.left), top = Math.max(content.top, requestedView.top);
+          const right = Math.min(content.left + content.width, requestedView.left + requestedView.width);
+          const bottom = Math.min(content.top + content.height, requestedView.top + requestedView.height);
+          if (right <= left || bottom <= top) continue;
+          sceneContext.drawImage(snapshot,
+            (left - content.left) / content.width * snapshot.width,
+            (top - content.top) / content.height * snapshot.height,
+            (right - left) / content.width * snapshot.width,
+            (bottom - top) / content.height * snapshot.height,
+            (left - requestedView.left) / requestedView.width * 320,
+            (top - requestedView.top) / requestedView.height * 240,
+            (right - left) / requestedView.width * 320,
+            (bottom - top) / requestedView.height * 240);
+        }
+        sceneReady = true;
+        sceneFailed = false;
+        sceneError = '';
+        sceneView = requestedView;
+      }).catch(() => {
+        sceneFailed = true;
+        sceneError = '仮想カメラ映像を合成できませんでした。';
+      }).finally(() => {
+        scenePending = false;
+        URL.revokeObjectURL(url);
+      });
+    };
+    image.onerror = () => {
+      sceneFailed = true; scenePending = false; sceneError = 'ページの仮想映像を生成できませんでした。';
+      URL.revokeObjectURL(url);
+    };
+    image.src = url;
+  } catch (error) {
+    sceneFailed = true; scenePending = false; sceneError = String(error);
+    if (url) URL.revokeObjectURL(url);
+  }
+}
+
+function captureParentView(view, target) {
+  requestSceneFrame(view);
+  if (sceneFailed || !sceneReady || !sameSceneView(sceneView, view)) return false;
+  const context = target.getContext('2d');
+  context.imageSmoothingEnabled = false;
+  context.drawImage(scene, 0, 0, target.width, target.height);
+  return true;
+}
+
+function resetParentScene() {
+  if (scenePending) return;
+  sceneReady = false;
+  sceneFailed = false;
+  sceneError = '';
+  sceneView = null;
+  sceneRequestedAt = 0;
+}
+
+function drawQrFallback(view, qr) {
+  grab.fillStyle = '#fff'; grab.fillRect(0, 0, 320, 240);
+  if (!qr || !qr.getClientRects().length) return;
+  const sourceWidth = qr.naturalWidth || qr.width, sourceHeight = qr.naturalHeight || qr.height;
+  if (!sourceWidth || !sourceHeight) return;
+  const rect = qr.getBoundingClientRect();
+  const left = Math.max(rect.left, view.left), top = Math.max(rect.top, view.top);
+  const right = Math.min(rect.right, view.left + view.width), bottom = Math.min(rect.bottom, view.top + view.height);
+  if (right <= left || bottom <= top) return;
+  grab.imageSmoothingEnabled = false;
+  grab.drawImage(qr, (left - rect.left) / rect.width * sourceWidth, (top - rect.top) / rect.height * sourceHeight,
+    (right - left) / rect.width * sourceWidth, (bottom - top) / rect.height * sourceHeight,
+    (left - view.left) / view.width * 320, (top - view.top) / view.height * 240,
+    (right - left) / view.width * 320, (bottom - top) / view.height * 240);
+}
+
 /* The scan loops stop calling capture when they end, so the camera is released after a second */
 function release() {
   if (stream) stream.then(s => s && s.getTracks().forEach(t => t.stop()));
@@ -94,10 +413,88 @@ function release() {
 
 var Module = {
   keys: [],
-  print: t => { log.textContent += t + '\n'; log.scrollTop = log.scrollHeight; },
+  ready: false,
+  cameraQrId: 'qr',
+  onRuntimeInitialized() {
+    Module.ready = true;
+    Module.setLanguage(window.parent?.jitsuLanguage || shellLanguage);
+    renderCameraStatus(Module.isEmbedded() ? '仮想カメラ · QR待機中' : 'Web camera');
+  },
+  onAbort(reason) { renderCameraStatus(`HWW起動エラー · ${String(reason)}`); },
+  setLanguage(language) { applyLanguage(language); },
+  isEmbedded() { return window.parent !== window; },
+  parentPoint(point) { return Module.isEmbedded() ? parentPoint(point) : null; },
+  cameraLensPoint() { return Module.isEmbedded() ? cameraLensPoint() : null; },
+  cameraFrameRect() { return Module.isEmbedded() ? cameraFrameRect() : null; },
+  captureParentView(view, target) { return Module.isEmbedded() && captureParentView(view, target); },
+  resetParentScene() { if (Module.isEmbedded()) resetParentScene(); },
+  parentSceneFailed() { return sceneFailed; },
+  parentSceneError() { return sceneError; },
+  setCameraStatus(text) { renderCameraStatus(text); },
+  canUseParentQr() {
+    try { return Module.isEmbedded() && !!window.parent.document.getElementById(Module.cameraQrId); }
+    catch { return false; }
+  },
+  signedUrParts() { return [...signedUR.values()]; },
+  print(t) {
+    if (t.startsWith('signed psbt (')) signedUR.clear(), download.disabled = true;
+    const descriptor = t.match(/^wallet descriptor: (wpkh\(.+\))$/);
+    if (descriptor) {
+      Module.walletDescriptor = descriptor[1];
+      if (Module.onWalletDescriptor) Module.onWalletDescriptor(descriptor[1]);
+    }
+    const part = t.match(/^UR:[A-Z0-9-]+\/(\d+)-(\d+)\//);
+    if (part) {
+      signedUR.set(part[1], t);
+      download.disabled = signedUR.size < Number(part[2]);
+      if (!download.disabled && Module.onSignedUr) Module.onSignedUr([...signedUR.values()]);
+    } else if (t.startsWith('UR:')) {
+      signedUR.set('1', t);
+      download.disabled = false;
+      if (Module.onSignedUr) Module.onSignedUr([...signedUR.values()]);
+    }
+    log.textContent += t + '\n';
+    log.scrollTop = log.scrollHeight;
+  },
   printErr: t => console.warn(t),
   present(rgba) { img.data.set(rgba); lcd.putImageData(img, 0, 0); },
   capture(buf) {
+    if (Module.isEmbedded()) {
+      clearTimeout(embeddedScanIdle);
+      if (!embeddedScanIdle) { grab.canvas.width = 320; grab.canvas.height = 240; }
+      Module.onCameraScanState?.(true);
+      embeddedScanIdle = setTimeout(() => {
+        embeddedScanIdle = 0;
+        Module.onCameraScanState?.(false);
+      }, 220);
+      try {
+        const qr = Module.canUseParentQr() ? window.parent.document.getElementById(Module.cameraQrId) : null;
+        const view = cameraFrameRect();
+        drawQrFallback(view, qr);
+        const rect = qr?.getClientRects().length ? qr.getBoundingClientRect() : null;
+        const aligned = rect && rect.left >= view.left - 2 && rect.top >= view.top - 2
+          && rect.right <= view.left + view.width + 2 && rect.bottom <= view.top + view.height + 2;
+        renderCameraStatus(aligned ? '仮想カメラ · QRが照準範囲内' : '仮想カメラ · 照準内のQRを待機中');
+        const d = grab.getImageData(0, 0, 320, 240).data;
+        for (let i = 0; i < buf.length; i++) buf[i] = (d[i * 4] * 77 + d[i * 4 + 1] * 150 + d[i * 4 + 2] * 29) >> 8;
+        return 1;
+      } catch {
+        grab.canvas.width = 320; grab.canvas.height = 240;
+        try {
+          const view = cameraFrameRect();
+          const qr = Module.canUseParentQr() ? window.parent.document.getElementById(Module.cameraQrId) : null;
+          drawQrFallback(view, qr);
+          renderCameraStatus('仮想カメラ · QRが照準範囲内');
+          const d = grab.getImageData(0, 0, 320, 240).data;
+          for (let i = 0; i < buf.length; i++) buf[i] = (d[i * 4] * 77 + d[i * 4 + 1] * 150 + d[i * 4 + 2] * 29) >> 8;
+        } catch {
+          buf.fill(255);
+          renderCameraStatus('仮想カメラ · 映像を読み込めません');
+        }
+        return 1;
+      }
+    }
+    renderCameraStatus('Web camera input');
     camera();
     clearTimeout(idle);
     idle = setTimeout(release, 1000);
@@ -109,7 +506,43 @@ var Module = {
   },
 };
 
-const keymap = { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3, Enter: 4, ' ': 4, Escape: 5 };
+const deviceFrame = document.querySelector('.device');
+const deviceDragHandle = document.getElementById('device-drag-handle');
+deviceFrame.addEventListener('pointerdown', event => {
+  if (!Module.isEmbedded() || event.button !== 0) return;
+  if (event.target.closest('button,input,textarea,select,a,label,summary,[contenteditable="true"]')) return;
+  deviceFrame.setPointerCapture(event.pointerId);
+  deviceFrame.classList.add('dragging');
+  Module.onHwwDragStart?.({ pointerId: event.pointerId, point: parentPoint({ x: event.clientX, y: event.clientY }) });
+});
+deviceFrame.addEventListener('pointermove', event => {
+  Module.onHwwDragMove?.({ pointerId: event.pointerId, point: parentPoint({ x: event.clientX, y: event.clientY }) });
+});
+const endDeviceDrag = event => {
+  deviceFrame.classList.remove('dragging');
+  Module.onHwwDragEnd?.({ pointerId: event.pointerId });
+};
+deviceFrame.addEventListener('pointerup', endDeviceDrag);
+deviceFrame.addEventListener('pointercancel', endDeviceDrag);
+deviceDragHandle.addEventListener('keydown', event => {
+  const delta = event.shiftKey ? 20 : 8;
+  const move = { ArrowLeft: [-delta, 0], ArrowRight: [delta, 0], ArrowUp: [0, -delta], ArrowDown: [0, delta] }[event.key];
+  if (!Module.isEmbedded() || !move) return;
+  event.preventDefault(); event.stopPropagation();
+  Module.onHwwNudge?.({ x: move[0], y: move[1] });
+});
+
+download.addEventListener('click', () => {
+  if (!signedUR.size) return;
+  const url = URL.createObjectURL(new Blob([[...signedUR.values()].join('\n') + '\n'], { type: 'text/plain' }));
+  const link = Object.assign(document.createElement('a'), { href: url, download: 'signed.ur' });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+const keymap = { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3, Enter: 4, ' ': 4, a: 5, Escape: 5, b: 6, c: 7 };
 addEventListener('keydown', e => {
   const k = keymap[e.key.length === 1 ? e.key.toLowerCase() : e.key];
   if (k === undefined || e.repeat) return;
