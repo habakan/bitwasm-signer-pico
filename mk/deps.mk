@@ -51,10 +51,10 @@ check-deps:
 	@for d in secp256k1:$(SECP_REV) wasm-micro-runtime:$(WAMR_REV) pico-sdk:$(PICO_REV) \
 	          quirc:$(QUIRC_REV) QR-Code-generator:$(QRGEN_REV) spleen:$(SPLEEN_REV); do \
 	  n=$${d%%:*}; want=$${d#*:}; \
-	  if [ ! -d third_party/$$n ]; then echo "$$n: 未取得（飛ばす）"; continue; fi; \
+	  if [ ! -d third_party/$$n ]; then echo "$$n: not fetched (skipped)"; continue; fi; \
 	  got=$$(git -C third_party/$$n rev-parse HEAD 2>/dev/null); \
 	  if [ "$$got" != "$$want" ]; then echo "$$n: $$got != $$want"; exit 1; fi; done
-	@echo "取得済みの third_party はすべて固定した commit"
+	@echo "every fetched third_party is at its pinned commit"
 .PHONY: check-deps
 
 .PHONY: deps
