@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>jitsu-in-pico HWW</title>
+<title>bitwasm-signer-pico HWW</title>
 <style>
 :root { color-scheme: light dark; --bg: #f4f2ee; --fg: #1d1c1a; --muted: #6b6760; --panel: #ffffff; --line: #d9d5cd;
   --body: #2b2a28; --key: #3d3b38; --key-fg: #f4f2ee; --warn-bg: #fdecc8; --warn-fg: #6a4500; }
@@ -69,9 +69,9 @@ video { display: none; }
 </head>
 <body>
 <main>
-<section class="device" aria-label="jitsu-in-pico hardware wallet">
+<section class="device" aria-label="bitwasm-signer-pico hardware wallet">
   <div class="device-top" id="device-drag-handle" role="group" tabindex="0" aria-label="ドラッグまたは矢印キーでHWWを移動">
-    <div class="camera-lens" id="camera-lens" role="img" aria-label="仮想カメラレンズ"><span class="lens-mark">CAM</span></div><span class="device-id">JITSU · HWW-01</span>
+    <div class="camera-lens" id="camera-lens" role="img" aria-label="仮想カメラレンズ"><span class="lens-mark">CAM</span></div><span class="device-id">BITWASM · HWW-01</span>
   </div>
   <div class="device-main">
     <div class="device-screenframe">
@@ -124,7 +124,7 @@ let signedUR = new Map();
 const download = document.getElementById('download');
 
 function translateShellText(value) {
-  try { return window.parent.jitsuTranslate?.(value, shellLanguage) || value; }
+  try { return window.parent.bitwasmTranslate?.(value, shellLanguage) || value; }
   catch { return value; }
 }
 
@@ -603,7 +603,7 @@ var Module = {
   cameraQrId: 'qr',
   onRuntimeInitialized() {
     Module.ready = true;
-    Module.setLanguage(window.parent?.jitsuLanguage || shellLanguage);
+    Module.setLanguage(window.parent?.bitwasmLanguage || shellLanguage);
     renderCameraStatus(Module.isEmbedded() ? '仮想カメラ · QR待機中' : 'Web camera');
   },
   onAbort(reason) { renderCameraStatus(`HWW起動エラー · ${String(reason)}`); },

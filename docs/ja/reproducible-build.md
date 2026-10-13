@@ -85,7 +85,7 @@ make check-wasm     # wasm-tools が必要です（brew install wasm-tools）
 | start function がない | 読み込み時にコードが実行されない |
 | 未知の custom section がない | 余分なデータが追加されていない |
 
-ブラウザの例と補助モジュールは [jitsu-in](https://github.com/habakan/jitsu-in/tree/main/examples/viewer) で管理しています。
+ブラウザの例と補助モジュールは [bitwasm-signer](https://github.com/habakan/bitwasm-signer/tree/main/examples/viewer) で管理しています。
 
 ## 依存関係も固定する
 

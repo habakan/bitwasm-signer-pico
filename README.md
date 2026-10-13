@@ -1,30 +1,29 @@
-# jitsu-in-pico
+# bitwasm-signer-pico
 
 <sup>[日本語](docs/ja/README.md)</sup>
 
-> **jitsu-in** — 実印, the seal that makes a signature binding in Japan; **pico** for the RP2350 it
-> runs on.
+> **bitwasm-signer** — Bitcoin, WebAssembly, signer; **pico** for the RP2350 it runs on.
 
 
-[![CI](https://github.com/habakan/jitsu-in-pico/actions/workflows/ci.yml/badge.svg)](https://github.com/habakan/jitsu-in-pico/actions/workflows/ci.yml)
+[![CI](https://github.com/habakan/bitwasm-signer-pico/actions/workflows/ci.yml/badge.svg)](https://github.com/habakan/bitwasm-signer-pico/actions/workflows/ci.yml)
 
-`jitsu-in-pico` is the Raspberry Pi Pico 2 (RP2350) reference implementation for
-[jitsu-in](https://github.com/habakan/jitsu-in). This repository contains the firmware, board-specific
+`bitwasm-signer-pico` is the Raspberry Pi Pico 2 (RP2350) reference implementation for
+[bitwasm-signer](https://github.com/habakan/bitwasm-signer). This repository contains the firmware, board-specific
 UI and camera code, hardware documentation, and device integration checks. The reusable modules and
-cross-platform examples live in jitsu-in.
+cross-platform examples live in bitwasm-signer.
 
-![Firmware stack: Pico 2 hardware, native firmware, WAMR, and jitsu-in modules](docs/firmware-stack.svg)
+![Firmware stack: Pico 2 hardware, native firmware, WAMR, and bitwasm-signer modules](docs/firmware-stack.svg)
 
-The separate [PSBT browser viewer](https://github.com/habakan/jitsu-in/tree/main/examples/viewer) is maintained in jitsu-in.
+The separate [PSBT browser viewer](https://github.com/habakan/bitwasm-signer/tree/main/examples/viewer) is maintained in bitwasm-signer.
 
-The device runs `parser.wasm` from jitsu-in. Its `Parser hash` screen shows the module's SHA-256;
+The device runs `parser.wasm` from bitwasm-signer. Its `Parser hash` screen shows the module's SHA-256;
 `make check-repro` rebuilds the pinned artifacts and compares them with the recorded hashes.
 
 | | |
 |---|---|
-| Modules, specifications, and cross-platform examples | [jitsu-in](https://github.com/habakan/jitsu-in) |
+| Modules, specifications, and cross-platform examples | [bitwasm-signer](https://github.com/habakan/bitwasm-signer) |
 | Pico 2 hardware and wiring | [docs/hardware.md](docs/hardware.md), [docs/breadboard.md](docs/breadboard.md) |
-| Parser ABI and host examples | [jitsu-in parser documentation](https://github.com/habakan/jitsu-in/tree/main/parser) |
+| Parser ABI and host examples | [bitwasm-signer parser documentation](https://github.com/habakan/bitwasm-signer/tree/main/parser) |
 
 Most design notes and measurements under `docs/` are in Japanese. English pages are linked from the
 Japanese index at [docs/ja/README.md](docs/ja/README.md).
@@ -41,10 +40,10 @@ Found a security problem? [SECURITY.md](SECURITY.md) — **not** a public issue.
 
 ## Browser demo
 
-Try the [live firmware demo](https://habakan.github.io/jitsu-in-pico/). It uses a test seed; never scan a real
+Try the [live firmware demo](https://habakan.github.io/bitwasm-signer-pico/). It uses a test seed; never scan a real
 SeedQR or use real funds. See [web/README.md](web/README.md) for the controls and implementation.
 
-[![Browser demo showing the firmware menu, controls, and test-seed warning](docs/web-demo.png)](https://habakan.github.io/jitsu-in-pico/)
+[![Browser demo showing the firmware menu, controls, and test-seed warning](docs/web-demo.png)](https://habakan.github.io/bitwasm-signer-pico/)
 
 ## The Pico 2 implementation
 
@@ -72,8 +71,8 @@ PSBT v2 is not supported.
 
 ### On hardware
 
-Prebuilt firmware is on the [Releases](https://github.com/habakan/jitsu-in-pico/releases) page:
-`jitsu-in-pico.uf2` for mainnet, `jitsu-in-pico-signet.uf2` for signet. Hold BOOTSEL while connecting
+Prebuilt firmware is on the [Releases](https://github.com/habakan/bitwasm-signer-pico/releases) page:
+`bitwasm-signer-pico.uf2` for mainnet, `bitwasm-signer-pico-signet.uf2` for signet. Hold BOOTSEL while connecting
 the Pico 2 over USB and copy the UF2 onto the drive. Building it yourself gives the same bytes
 ([docs/reproducible-build.md](docs/reproducible-build.md)).
 
@@ -135,7 +134,7 @@ Host and QEMU checks live under `tests/`.
 
 | | | TCB |
 |---|---|---|
-| `components/parts/` | Pinned [jitsu-in](https://github.com/habakan/jitsu-in) submodule: reusable parser and signer modules. Their specifications and host examples are maintained in jitsu-in | **outside** |
+| `components/parts/` | Pinned [bitwasm-signer](https://github.com/habakan/bitwasm-signer) submodule: reusable parser and signer modules. Their specifications and host examples are maintained in bitwasm-signer | **outside** |
 | `components/qr/` | QR decoder ([quirc](https://github.com/habakan/quirc) submodule) | outside |
 | `src/` | The firmware's entry point (`main.c`) and the pin assignment (`board_pins.h`) | inside |
 | `src/drivers/` | Display (ST7789), buttons, camera (PIO + DMA). Runs only on the board | inside |

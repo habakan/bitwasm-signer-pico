@@ -262,14 +262,14 @@ static void draw_dot(uint16_t line[UI_W], int y, int cx, int cy, int radius, uin
 static const char *screen_section(const char *title, int ready, int setup, int summary, int output, int approval,
                                   int cancel) {
     if (setup) return "WALLET SETUP";
-    if (ready) return "JITSU SIGNER";
+    if (ready) return "BITWASM SIGNER";
     if (summary) return "SIGN PSBT / SUMMARY";
     if (output) return title;
     if (approval) return "FINAL REVIEW";
     if (cancel) return "SIGN PSBT / CANCEL";
     if (strstr(title, "xpub")) return "WALLET INFO";
     if (strstr(title, "hash")) return "DEVICE INFO";
-    return "JITSU SIGNER";
+    return "BITWASM SIGNER";
 }
 
 static int is_menu_row(const char *text) {

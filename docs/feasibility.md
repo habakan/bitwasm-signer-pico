@@ -135,7 +135,7 @@ make run ELF=build/rp2350/qr_bench.elf                    # hardware, via SWD an
 
 ## Earlier experiments: signer and key derivation in WASM
 
-The following measurements use the former `bitcoin-signer.wasm`, removed from jitsu-in v0.1.0. They
+The following measurements use the former `bitcoin-signer.wasm`, removed from bitwasm-signer v0.1.0. They
 are retained as historical evidence for the performance and memory trade-offs. They do not describe
 the current firmware, whose signing core is native.
 

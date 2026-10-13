@@ -32,7 +32,7 @@ jobs:
           make deps
           make check-deps
           ./tools/build/toolchain.sh
-      - name: The parser the firmware embeds is the one jitsu-in released
+      - name: The parser the firmware embeds is the one bitwasm-signer released
         run: make check-repro
 
       # Both builds start from an empty build/rp2350, so the CMake cache cannot carry TESTNET across
@@ -40,18 +40,18 @@ jobs:
         run: |
           mkdir -p dist
           make build/rp2350/app.elf
-          cp build/rp2350/app.uf2 dist/jitsu-in-pico.uf2
+          cp build/rp2350/app.uf2 dist/bitwasm-signer-pico.uf2
           rm -rf build/rp2350
           make build/rp2350/app.elf TESTNET=1
-          cp build/rp2350/app.uf2 dist/jitsu-in-pico-signet.uf2
+          cp build/rp2350/app.uf2 dist/bitwasm-signer-pico-signet.uf2
           cp build/parser.wasm dist/
-          cd dist && sha256sum jitsu-in-pico.uf2 jitsu-in-pico-signet.uf2 parser.wasm > SHA256SUMS && cat SHA256SUMS
+          cd dist && sha256sum bitwasm-signer-pico.uf2 bitwasm-signer-pico-signet.uf2 parser.wasm > SHA256SUMS && cat SHA256SUMS
 
       - uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
-            dist/jitsu-in-pico.uf2
-            dist/jitsu-in-pico-signet.uf2
+            dist/bitwasm-signer-pico.uf2
+            dist/bitwasm-signer-pico-signet.uf2
 
       - name: Release
         env:
@@ -62,8 +62,8 @@ jobs:
           {
             echo "**Not reviewed by a third party. Do not put real funds through it.**"
             echo
-            echo "- \`jitsu-in-pico.uf2\`: mainnet"
-            echo "- \`jitsu-in-pico-signet.uf2\`: signet (\`TESTNET=1\`)"
+            echo "- \`bitwasm-signer-pico.uf2\`: mainnet"
+            echo "- \`bitwasm-signer-pico-signet.uf2\`: signet (\`TESTNET=1\`)"
             echo
             echo "Hold BOOTSEL while connecting the Pico 2 over USB, then copy a UF2 onto the drive."
             echo "Neither build can select the test seed (\`TEST_SEED=0\`)."
@@ -72,13 +72,13 @@ jobs:
             cat dist/SHA256SUMS
             echo '```'
             echo
-            echo "\`parser.wasm\` is the module the firmware embeds, the same bytes as the jitsu-in release it is pinned to."
+            echo "\`parser.wasm\` is the module the firmware embeds, the same bytes as the bitwasm-signer release it is pinned to."
             echo "Reproduce the UF2s: check out this tag, \`make deps\`, then build as above."
             echo "The same bytes come out on macOS arm64 and Linux x86_64."
             echo
-            echo "Provenance: \`gh attestation verify jitsu-in-pico.uf2 --repo $REPO\`"
+            echo "Provenance: \`gh attestation verify bitwasm-signer-pico.uf2 --repo $REPO\`"
             echo
             echo "A detached PGP signature over SHA256SUMS is attached when the maintainer signs the release."
           } > notes.md
-          gh release create "$TAG" dist/jitsu-in-pico.uf2 dist/jitsu-in-pico-signet.uf2 dist/parser.wasm dist/SHA256SUMS \
+          gh release create "$TAG" dist/bitwasm-signer-pico.uf2 dist/bitwasm-signer-pico-signet.uf2 dist/parser.wasm dist/SHA256SUMS \
             --repo "$REPO" --title "$TAG" --notes-file notes.md

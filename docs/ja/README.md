@@ -1,17 +1,17 @@
-# jitsu-in-pico
+# bitwasm-signer-pico
 
 <sup>[English](../../README.md)</sup>
 
-> **jitsu-in ── 実印。** 署名に拘束力を与える印。**pico** は動作先の RP2350 から。
+> **bitwasm-signer** ── Bitcoin、WebAssembly、signer。**pico** は動作先の RP2350 から。
 
 
-[![CI](https://github.com/habakan/jitsu-in-pico/actions/workflows/ci.yml/badge.svg)](https://github.com/habakan/jitsu-in-pico/actions/workflows/ci.yml)
+[![CI](https://github.com/habakan/bitwasm-signer-pico/actions/workflows/ci.yml/badge.svg)](https://github.com/habakan/bitwasm-signer-pico/actions/workflows/ci.yml)
 
 英語版は [README.md](../../README.md) です。
 
-`jitsu-in-pico` は [jitsu-in](https://github.com/habakan/jitsu-in) の Raspberry Pi Pico 2（RP2350）参照実装です。
+`bitwasm-signer-pico` は [bitwasm-signer](https://github.com/habakan/bitwasm-signer) の Raspberry Pi Pico 2（RP2350）参照実装です。
 ファームウェア、基板固有の UI・カメラ処理、配線資料、実機連携の検証を置いています。
-再利用モジュールと言語別の利用例は jitsu-in 側で管理しています。
+再利用モジュールと言語別の利用例は bitwasm-signer 側で管理しています。
 
 ## 安全上の注意
 
@@ -23,21 +23,21 @@ signet で署名から送信まで一巡しました。ここに載せた数値�
 
 セキュリティ上の問題は [SECURITY.md](../../SECURITY.md)（英語）に従って報告してください。**公開 issue には書かないでください。**
 
-ブラウザの [PSBT ビューア](https://github.com/habakan/jitsu-in/tree/main/examples/viewer) は jitsu-in 側で管理しています。
+ブラウザの [PSBT ビューア](https://github.com/habakan/bitwasm-signer/tree/main/examples/viewer) は bitwasm-signer 側で管理しています。
 
-デバイスが使う `parser.wasm` は jitsu-in の成果物です。画面の `Parser hash` と
+デバイスが使う `parser.wasm` は bitwasm-signer の成果物です。画面の `Parser hash` と
 `make check-repro` の記録を突き合わせられます。
 
 | | |
 |---|---|
-| モジュールの仕様と他環境での利用 | [jitsu-in](https://github.com/habakan/jitsu-in) |
-| parser の ABI とホスト実装例 | [jitsu-in parser](https://github.com/habakan/jitsu-in/tree/main/parser)（英語） |
+| モジュールの仕様と他環境での利用 | [bitwasm-signer](https://github.com/habakan/bitwasm-signer) |
+| parser の ABI とホスト実装例 | [bitwasm-signer parser](https://github.com/habakan/bitwasm-signer/tree/main/parser)（英語） |
 
 ## ブラウザデモ
 
-[公開デモページ](https://habakan.github.io/jitsu-in-pico/)から試せます。テストシードを使うデモなので、本物の SeedQR を読み込ませず、実資金を扱わないでください。操作方法と実装の説明は [web/README.md](../../web/README.md)（英語）をご覧ください。
+[公開デモページ](https://habakan.github.io/bitwasm-signer-pico/)から試せます。テストシードを使うデモなので、本物の SeedQR を読み込ませず、実資金を扱わないでください。操作方法と実装の説明は [web/README.md](../../web/README.md)（英語）をご覧ください。
 
-[![ブラウザ上のファームウェアメニュー、操作パッド、テストシードの注意書きを表示したデモ画面](../web-demo.png)](https://habakan.github.io/jitsu-in-pico/)
+[![ブラウザ上のファームウェアメニュー、操作パッド、テストシードの注意書きを表示したデモ画面](../web-demo.png)](https://habakan.github.io/bitwasm-signer-pico/)
 
 ## Pico 2 の実装
 
@@ -61,8 +61,8 @@ signet で署名から送信まで一巡しました。ここに載せた数値�
 
 ### 実機
 
-ビルド済みのファームは [Releases](https://github.com/habakan/jitsu-in-pico/releases) にあります
-（`jitsu-in-pico.uf2` が mainnet、`jitsu-in-pico-signet.uf2` が signet）。BOOTSEL を押しながら USB で
+ビルド済みのファームは [Releases](https://github.com/habakan/bitwasm-signer-pico/releases) にあります
+（`bitwasm-signer-pico.uf2` が mainnet、`bitwasm-signer-pico-signet.uf2` が signet）。BOOTSEL を押しながら USB で
 つなぎ、表示されたドライブに UF2 をコピーしてください。自分でビルドした場合も同じバイト列になります
 （[再現可能ビルド](reproducible-build.md)をご覧ください）。
 
@@ -129,7 +129,7 @@ make -C components/parts/parser check-fuzz  # 解析器へのファジング
 
 | | | TCB |
 |---|---|---|
-| `components/parts/` | [jitsu-in](https://github.com/habakan/jitsu-in) の固定 submodule。再利用する parser / signer モジュールを含む。仕様とホスト実装例の管理先は jitsu-in | **外** |
+| `components/parts/` | [bitwasm-signer](https://github.com/habakan/bitwasm-signer) の固定 submodule。再利用する parser / signer モジュールを含む。仕様とホスト実装例の管理先は bitwasm-signer | **外** |
 | `components/qr/` | QR デコーダ（submodule [quirc](https://github.com/habakan/quirc) の `mcu` ブランチ。FPU 無し向けに固定小数点化） | 外 |
 | `src/` | ファームの入口（`main.c`）とピン割り当て（`board_pins.h`） | 内 |
 | `src/drivers/` | 液晶（ST7789）、ボタン、カメラ（PIO + DMA）。実機でしか動かない | 内 |

@@ -419,7 +419,7 @@ static void show_xpub(unsigned int purpose) {
     }
 }
 
-/* The hash of the parser.wasm actually loaded. Matching it against the jitsu-in viewer is
+/* The hash of the parser.wasm actually loaded. Matching it against the bitwasm-signer viewer is
  * how you confirm the device is running the same module you are */
 static void show_parser_hash(void) {
     static ui_screen_t s;
@@ -468,7 +468,7 @@ int main(void) {
     st7789_init();
 #endif
     buttons_init();
-    printf("\njitsu-in-pico (%s)\n", TESTNET ? "testnet/signet" : "mainnet");
+    printf("\nbitwasm-signer-pico (%s)\n", TESTNET ? "testnet/signet" : "mainnet");
 
     memcpy(parser_wasm_rw, parser_wasm, sizeof(parser_wasm_rw));
     /* A TESTNET=1 build targets signet and testnet: tb1 addresses, derived under m/84'/1'/... */

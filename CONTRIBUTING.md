@@ -14,7 +14,7 @@ touching the parser or writing a host for it.
 - **Source-code comments: English.**
 - This repository's commit messages and `docs/` are **Japanese**; `README.md` and
   `docs/limitations.md` are English. Translations of existing Japanese docs are welcome.
-- The [jitsu-in](https://github.com/habakan/jitsu-in) submodule is **English
+- The [bitwasm-signer](https://github.com/habakan/bitwasm-signer) submodule is **English
   throughout**, including its commits.
 
 Write a patch in whichever of the two you are comfortable with; the maintainer will not reject a
@@ -34,7 +34,7 @@ If a change alters any `.wasm`, `checksums.txt` changes too. Include it in the s
 in the PR — a reviewer needs to see that the hash moved on purpose.
 
 For C changes, run `make format-c` before `make check-c-format check-c-tidy`. The formatter and
-static-analysis settings match the [jitsu-in](https://github.com/habakan/jitsu-in) project.
+static-analysis settings match the [bitwasm-signer](https://github.com/habakan/bitwasm-signer) project.
 
 ## Conventions
 
