@@ -69,5 +69,9 @@ PARSER_BIN := build/parser.$(if $(filter 1,$(PARSER_AOT)),aot,wasm)
 build/parser.aot: build/parser.wasm $(WAMRC)
 	$(WAMRC) $(WAMRC_RAM_FLAGS) -o $@ $< >/dev/null
 
-build/parser_wasm.h: $(PARSER_BIN)
+# The firmware embeds only a parser.wasm listed in checksums.txt, whichever build path made it.
+build/parser_wasm.h: $(PARSER_BIN) build/parser.wasm checksums.txt
+	@grep ' build/parser.wasm$$' checksums.txt > build/parser.wasm.sha256
+	@(shasum -a 256 -c build/parser.wasm.sha256 2>/dev/null || sha256sum -c build/parser.wasm.sha256) \
+	  || { echo "build/parser.wasm が checksums.txt と一致しない。make check-repro で作り直す"; exit 1; }
 	xxd -i -n parser_wasm $< | sed 's/^unsigned char/const unsigned char/' > $@
