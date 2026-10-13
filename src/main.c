@@ -120,7 +120,7 @@ static void show_preview(const uint8_t *img, const char *status) {
 /* Reads an animated QR and reassembles the PSBT. Returns its length, or 0 if cancelled or failed */
 static uint32_t scan_psbt(void) {
     struct quirc *q;
-    unsigned parts = 0;
+    unsigned int parts = 0;
     uint64_t seen = 0; /* which parts have arrived, so a repeat is not counted twice */
     uint32_t len = 0;
     char status[UI_COLS + 1];
@@ -145,7 +145,7 @@ static uint32_t scan_psbt(void) {
             static struct quirc_code code;
             static struct quirc_data data;
             int32_t rc = 0;
-            unsigned seq = 0, seq_len = 0;
+            unsigned int seq = 0, seq_len = 0;
             quirc_extract(q, i, &code);
             found = 1;
             if (quirc_decode(&code, &data)) {
@@ -155,9 +155,9 @@ static uint32_t scan_psbt(void) {
             /* n and m out of "UR:CRYPTO-PSBT/<n>-<m>/", to show how many of how many */
             for (const char *c = (const char *)data.payload; *c; c++)
                 if (*c == '/') {
-                    while (*++c >= '0' && *c <= '9') seq = seq * 10 + (unsigned)(*c - '0');
+                    while (*++c >= '0' && *c <= '9') seq = seq * 10 + (unsigned int)(*c - '0');
                     if (*c == '-')
-                        while (*++c >= '0' && *c <= '9') seq_len = seq_len * 10 + (unsigned)(*c - '0');
+                        while (*++c >= '0' && *c <= '9') seq_len = seq_len * 10 + (unsigned int)(*c - '0');
                     break;
                 }
             if (!parser_host_ur_receive((const char *)data.payload, (uint32_t)data.payload_len, &rc, psbt,
@@ -179,7 +179,7 @@ static uint32_t scan_psbt(void) {
     }
     quirc_destroy(q);
     if (!len) free(psbt), psbt = NULL;
-    printf("scan: %u parts, psbt %u bytes\n", parts, (unsigned)len);
+    printf("scan: %u parts, psbt %u bytes\n", parts, (unsigned int)len);
     return len;
 }
 
@@ -241,7 +241,7 @@ static void sign_flow(const uint8_t *in, uint32_t in_len) {
     core_display_t display;
     core_sig_t sigs[PLAN_MAX_INPUTS];
     uint32_t rc = 0, out_len = 0;
-    unsigned n_sigs = 0;
+    unsigned int n_sigs = 0;
     uint64_t t;
     int err, decision = UI_PENDING;
 
@@ -249,11 +249,11 @@ static void sign_flow(const uint8_t *in, uint32_t in_len) {
 
     t = time_us_64();
     if (!parser_host_parse(in, in_len, core_fingerprint(), &rc, &plan, prev, prevtx_arena, PARSER_PSBT_MAX) || rc) {
-        printf("parse failed rc=%u\n", (unsigned)rc);
+        printf("parse failed rc=%u\n", (unsigned int)rc);
         return sign_buffers_give(), message("Invalid PSBT", NULL, 1);
     }
     printf("parse %llu us, pool highmark %u\n", (unsigned long long)(time_us_64() - t),
-           (unsigned)parser_host_pool_highmark());
+           (unsigned int)parser_host_pool_highmark());
 
     t = time_us_64();
     if ((err = core_review(&plan, prev, &review)) != CORE_OK ||
@@ -268,7 +268,7 @@ static void sign_flow(const uint8_t *in, uint32_t in_len) {
     while (decision == UI_PENDING) {
         int key = buttons_poll();
         if (key >= 0) {
-            unsigned before = review_ui.cur;
+            unsigned int before = review_ui.cur;
             decision = ui_review_key(&review_ui, key);
             if (review_ui.cur != before) show(&review_ui.screens[review_ui.cur]);
         }
@@ -285,7 +285,7 @@ static void sign_flow(const uint8_t *in, uint32_t in_len) {
     if (!parser_host_finalize(sigs, n_sigs, signed_psbt, SIGNED_PSBT_MAX, &out_len))
         return sign_buffers_give(), message("Finalize failed", NULL, 1);
 
-    printf("signed psbt (%u bytes):\n", (unsigned)out_len);
+    printf("signed psbt (%u bytes):\n", (unsigned int)out_len);
     for (uint32_t i = 0; i < out_len; i++) printf("%02x%s", signed_psbt[i], (i % 32 == 31) ? "\n" : "");
     printf("\n");
     export_qr(out_len);
@@ -341,7 +341,7 @@ static int scan_seed(void) {
     wipe(&data, sizeof(data));
     wipe(mnemonic, sizeof(mnemonic));
     wipe(seed, sizeof(seed));
-    if (ok) printf("seed from SeedQR, fingerprint %08x\n", (unsigned)core_fingerprint());
+    if (ok) printf("seed from SeedQR, fingerprint %08x\n", (unsigned int)core_fingerprint());
     return ok;
 }
 
@@ -357,7 +357,8 @@ static int load_test_seed(void) {
                        seed);
     ok = core_load_seed(seed);
     memset(seed, 0, sizeof(seed));
-    printf("seed %llu us, fingerprint %08x\n", (unsigned long long)(time_us_64() - t), (unsigned)core_fingerprint());
+    printf("seed %llu us, fingerprint %08x\n", (unsigned long long)(time_us_64() - t),
+           (unsigned int)core_fingerprint());
     return ok;
 }
 #endif
@@ -386,13 +387,14 @@ static void seed_menu(void) {
     }
 }
 
-/* Shows the account xpub and descriptor. That is all the PC needs to watch the wallet, with no key */
-static void show_xpub(void) {
+/* Shows the account xpub and descriptor. That is all the PC needs to watch the wallet, with no key. For
+ * purpose 48 the descriptor is this cosigner's key expression, which the PC puts into wsh(sortedmulti()) */
+static void show_xpub(unsigned int purpose) {
     static ui_screen_t s;
     static char xpub[CORE_XPUB_MAX], desc[CORE_DESC_MAX];
 
-    if (core_account_xpub(84, 0, xpub, desc) != CORE_OK) return message("xpub failed", NULL, 1);
-    ui_xpub(&s, xpub, core_fingerprint(), TESTNET);
+    if (core_account_xpub(purpose, 0, xpub, desc) != CORE_OK) return message("xpub failed", NULL, 1);
+    ui_xpub(&s, xpub, core_fingerprint(), TESTNET, purpose);
     show(&s);
     printf("%s\n%s\n", xpub, desc);
     wait_key();
@@ -417,31 +419,34 @@ static void show_parser_hash(void) {
     uint8_t h[32];
 
     sha256(parser_wasm, sizeof(parser_wasm), h);
-    ui_hash(&s, "parser.wasm", (unsigned)sizeof(parser_wasm), h);
+    ui_hash(&s, "parser.wasm", (unsigned int)sizeof(parser_wasm), h);
     show(&s);
-    printf("parser.wasm %u B sha256 ", (unsigned)sizeof(parser_wasm));
+    printf("parser.wasm %u B sha256 ", (unsigned int)sizeof(parser_wasm));
     for (int i = 0; i < 32; i++) printf("%02x", h[i]);
     printf("\n");
     wait_key();
 }
 
 static void main_menu(void) {
-    static const char *const items[] = {"Scan PSBT", "Show xpub", "Parser hash", "Sign test PSBT", "Lock (wipe seed)"};
-    static const char *const items_notest[] = {"Scan PSBT", "Show xpub", "Parser hash", "Lock (wipe seed)"};
+    static const char *const items[] = {"Scan PSBT",   "Show xpub",      "Show multisig xpub",
+                                        "Parser hash", "Sign test PSBT", "Lock (wipe seed)"};
+    static const char *const items_notest[] = {"Scan PSBT", "Show xpub", "Show multisig xpub", "Parser hash",
+                                               "Lock (wipe seed)"};
     static char title[UI_COLS + 1];
 
-    snprintf(title, sizeof(title), "%s fp %08x", TESTNET ? "Signet" : "Signer", (unsigned)core_fingerprint());
-    ui_menu_init(&menu, title, TEST_SEED ? items : items_notest, TEST_SEED ? 5 : 4);
+    snprintf(title, sizeof(title), "%s fp %08x", TESTNET ? "Signet" : "Signer", (unsigned int)core_fingerprint());
+    ui_menu_init(&menu, title, TEST_SEED ? items : items_notest, TEST_SEED ? 6 : 5);
     show(&menu.screen);
     for (;;) {
         int sel = ui_menu_key(&menu, wait_key());
         if (sel == 0) scan_and_sign();
-        if (sel == 1) show_xpub();
-        if (sel == 2) show_parser_hash();
+        if (sel == 1) show_xpub(84);
+        if (sel == 2) show_xpub(48);
+        if (sel == 3) show_parser_hash();
 #if TEST_SEED
-        if (sel == 3) sign_flow(test_psbt, sizeof(test_psbt));
+        if (sel == 4) sign_flow(test_psbt, sizeof(test_psbt));
 #endif
-        if (sel == (TEST_SEED ? 4 : 3)) {
+        if (sel == (TEST_SEED ? 5 : 4)) {
             core_unload();
             printf("locked (seed wiped)\n");
             return;

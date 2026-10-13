@@ -47,13 +47,13 @@ int main(void) {
     core_sig_t sigs[PLAN_MAX_INPUTS];
     uint8_t seed[64];
     uint32_t rc = 0, out_len = 0;
-    unsigned n_sigs = 0;
+    unsigned int n_sigs = 0;
     uint64_t t, ur_total, worst = 0;
     const uint8_t *image = parser_wasm;
     int err;
 
     stdio_init_all();
-    printf("\npsbt_bench: TEST SEED ONLY (" MODE ", pool %u KB)\n", (unsigned)POOL_KB);
+    printf("\npsbt_bench: TEST SEED ONLY (" MODE ", pool %u KB)\n", (unsigned int)POOL_KB);
 
 #if WASM_ENABLE_INTERP != 0
     memcpy(parser_wasm_rw, parser_wasm, sizeof(parser_wasm_rw));
@@ -74,7 +74,7 @@ int main(void) {
     t = time_us_64();
     if (!core_init(CORE_MAINNET) || !parser_host_init(image, sizeof(parser_wasm), pool, sizeof(pool)))
         return printf("init failed\n"), 1;
-    printf("init %llu us (image %u B)\n", (unsigned long long)(time_us_64() - t), (unsigned)sizeof(parser_wasm));
+    printf("init %llu us (image %u B)\n", (unsigned long long)(time_us_64() - t), (unsigned int)sizeof(parser_wasm));
 
     t = time_us_64();
     pbkdf2_hmac_sha512((const uint8_t *)TEST_MNEMONIC, sizeof(TEST_MNEMONIC) - 1, (const uint8_t *)"mnemonic", 8, 2048,
@@ -87,7 +87,7 @@ int main(void) {
     if (!parser_host_parse(test_psbt, sizeof(test_psbt), core_fingerprint(), &rc, &plan, prev, prevtx_arena,
                            PARSER_PSBT_MAX) ||
         rc)
-        return printf("parse failed rc=%u\n", (unsigned)rc), 1;
+        return printf("parse failed rc=%u\n", (unsigned int)rc), 1;
     printf("parse %llu us (wasm)\n", (unsigned long long)(time_us_64() - t));
 
     t = time_us_64();
@@ -122,9 +122,9 @@ int main(void) {
     printf("ur+qr %llu us total for %ld parts, worst part %llu us\n", (unsigned long long)(time_us_64() - ur_total),
            parts, (unsigned long long)worst);
 
-    printf("signed %u bytes, first 32: ", (unsigned)out_len);
+    printf("signed %u bytes, first 32: ", (unsigned int)out_len);
     for (int i = 0; i < 32; i++) printf("%02x", signed_psbt[i]);
-    printf("\npool_highmark %u\nheap arena %d B (%d B if not shared)\ndone\n", (unsigned)parser_host_pool_highmark(),
-           mallinfo().arena, 91648 + PARSER_PSBT_MAX + SIGNED_PSBT_MAX);
+    printf("\npool_highmark %u\nheap arena %d B (%d B if not shared)\ndone\n",
+           (unsigned int)parser_host_pool_highmark(), mallinfo().arena, 91648 + PARSER_PSBT_MAX + SIGNED_PSBT_MAX);
     while (1) tight_loop_contents();
 }

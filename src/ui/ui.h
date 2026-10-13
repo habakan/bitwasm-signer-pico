@@ -45,10 +45,10 @@ typedef struct {
     ui_screen_t screen;
     const char *title;
     const char *const *items;
-    unsigned n, cur;
+    unsigned int n, cur;
 } ui_menu_t;
 
-void ui_menu_init(ui_menu_t *m, const char *title, const char *const *items, unsigned n);
+void ui_menu_init(ui_menu_t *m, const char *title, const char *const *items, unsigned int n);
 /* Returns the chosen item's index, or UI_MENU_PENDING or UI_MENU_BACK */
 int ui_menu_key(ui_menu_t *m, int key);
 /* A text-only screen, for startup, errors and warnings */
@@ -61,11 +61,11 @@ void ui_message(ui_screen_t *s, const char *title, const char *body, int warn);
 #define UI_UR_FRAGMENT 100
 #define UI_QR_MAX_VERSION 12
 /* Encodes text as a QR, or returns 0 if it does not fit */
-/* The account xpub screen; the string is wrapped so all of it is shown */
-void ui_xpub(ui_screen_t *s, const char *xpub, uint32_t fp, int testnet);
+/* The account xpub screen; the string is wrapped so all of it is shown. purpose 48 is m/48h/coin/0h/2h */
+void ui_xpub(ui_screen_t *s, const char *xpub, uint32_t fp, int testnet, unsigned int purpose);
 
 /* Shows the hash of the wasm actually loaded */
-void ui_hash(ui_screen_t *s, const char *name, unsigned len, const uint8_t h[32]);
+void ui_hash(ui_screen_t *s, const char *name, unsigned int len, const uint8_t h[32]);
 
 int ui_qr_set(const char *text);
 /* Adds the four-module quiet zone and scales by a whole number to fill the screen */

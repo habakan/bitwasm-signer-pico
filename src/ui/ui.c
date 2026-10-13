@@ -58,7 +58,7 @@ static void put_amount(writer_t *w, uint16_t color, const char *label, uint64_t 
     put(w, color, line);
 }
 
-static void put_number(writer_t *w, uint16_t color, const char *label, unsigned v) {
+static void put_number(writer_t *w, uint16_t color, const char *label, unsigned int v) {
     char line[UI_COLS + 1];
     size_t n = strlen(label);
     memcpy(line, label, n);
@@ -68,7 +68,7 @@ static void put_number(writer_t *w, uint16_t color, const char *label, unsigned 
     put(w, color, line);
 }
 
-static void put_counter(writer_t *w, uint16_t color, const char *label, unsigned a, unsigned b) {
+static void put_counter(writer_t *w, uint16_t color, const char *label, unsigned int a, unsigned int b) {
     char line[UI_COLS + 1];
     size_t n = strlen(label), o = n;
     memcpy(line, label, n);
@@ -83,11 +83,11 @@ static void put_counter(writer_t *w, uint16_t color, const char *label, unsigned
 
 void ui_review_init(ui_review_t *r, const core_display_t *d) {
     static const char *owner[] = {"Send to", "Change", "Self-transfer"};
-    unsigned n_send = 0;
+    unsigned int n_send = 0;
     writer_t w;
 
     memset(r, 0, sizeof(*r));
-    for (unsigned i = 0; i < d->n_outputs; i++) n_send += d->outputs[i].owner == CORE_OUT_EXTERNAL;
+    for (unsigned int i = 0; i < d->n_outputs; i++) n_send += d->outputs[i].owner == CORE_OUT_EXTERNAL;
 
     w = (writer_t){&r->screens[r->n++], 0};
     put_header(&w);
@@ -101,7 +101,7 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
     w.row = UI_ROWS - 1;
     put(&w, C_HINT, "RIGHT: next   A: cancel");
 
-    for (unsigned i = 0; i < d->n_outputs; i++) {
+    for (unsigned int i = 0; i < d->n_outputs; i++) {
         const core_display_output_t *o = &d->outputs[i];
         uint16_t color = o->owner == CORE_OUT_EXTERNAL ? C_SEND : C_OURS;
         w = (writer_t){&r->screens[r->n++], 0};
@@ -144,7 +144,7 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
 int ui_review_key(ui_review_t *r, int key) {
     /* Confirmation is second from last and cancel is last. Signing needs every screen to have been
      * seen, the cancel screen aside */
-    unsigned sign = r->n - 2, must_see = (1u << (r->n - 1)) - 1;
+    unsigned int sign = r->n - 2, must_see = (1u << (r->n - 1)) - 1;
     if (key == UI_KEY_A) return UI_REJECTED;
     if (key == UI_KEY_RIGHT || key == UI_KEY_DOWN) r->cur = (r->cur + 1) % r->n;
     if (key == UI_KEY_LEFT || key == UI_KEY_UP) r->cur = (r->cur + r->n - 1) % r->n;
@@ -160,7 +160,7 @@ static void menu_draw(ui_menu_t *m) {
     put_header(&w);
     put(&w, C_TITLE, m->title);
     put(&w, C_TEXT, "");
-    for (unsigned i = 0; i < m->n; i++) {
+    for (unsigned int i = 0; i < m->n; i++) {
         char line[UI_COLS + 1];
         line[0] = i == m->cur ? '>' : ' ';
         line[1] = ' ';
@@ -172,7 +172,7 @@ static void menu_draw(ui_menu_t *m) {
     put(&w, C_HINT, "DOWN: move   PUSH: select");
 }
 
-void ui_menu_init(ui_menu_t *m, const char *title, const char *const *items, unsigned n) {
+void ui_menu_init(ui_menu_t *m, const char *title, const char *const *items, unsigned int n) {
     m->title = title;
     m->items = items;
     m->n = n > UI_MENU_MAX ? UI_MENU_MAX : n;
@@ -205,7 +205,7 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
     const char *t = s->text[row];
     for (int x = 0; x < UI_W; x++) line[x] = C_BG;
     for (int c = 0; c < UI_COLS && t[c]; c++) {
-        unsigned ch = (unsigned char)t[c];
+        unsigned int ch = (unsigned char)t[c];
         uint8_t bits = font8x16[(ch >= 0x20 && ch <= 0x7e ? ch : '?') - 0x20][gy];
         for (int b = 0; b < FONT_W; b++)
             if (bits & (0x80 >> b)) line[c * FONT_W + b] = s->color[row];
@@ -227,11 +227,11 @@ int ui_qr_modules(void) {
  * Too bright saturates the camera's exposure and cannot be read */
 static const uint16_t qr_white[] = {RGB565(255, 255, 255), RGB565(190, 190, 190), RGB565(130, 130, 130),
                                     RGB565(80, 80, 80)};
-static unsigned qr_level = 1;
+static unsigned int qr_level = 1;
 
 void ui_qr_level(int delta) {
-    unsigned n = sizeof(qr_white) / sizeof(*qr_white);
-    qr_level = (qr_level + (unsigned)(delta > 0 ? 1 : n - 1)) % n;
+    unsigned int n = sizeof(qr_white) / sizeof(*qr_white);
+    qr_level = (qr_level + (unsigned int)(delta > 0 ? 1 : n - 1)) % n;
 }
 
 int ui_qr_level_get(void) {
@@ -249,15 +249,16 @@ void ui_qr_render_line(int y, uint16_t line[UI_W]) {
 }
 
 /* The account xpub, shown in full with nothing trimmed from either end, so it can be compared by eye */
-void ui_xpub(ui_screen_t *s, const char *xpub, uint32_t fp, int testnet) {
+void ui_xpub(ui_screen_t *s, const char *xpub, uint32_t fp, int testnet, unsigned int purpose) {
     writer_t w = {s, 0};
     char line[UI_COLS + 1];
     size_t n = strlen(xpub);
 
     memset(s, 0, sizeof(*s));
     put_header(&w);
-    put(&w, C_TITLE, "Account xpub (watch-only)");
-    snprintf(line, sizeof(line), "m/84h/%dh/0h  fp %08lx", testnet ? 1 : 0, (unsigned long)fp);
+    put(&w, C_TITLE, purpose == 48 ? "Multisig xpub (P2WSH)" : "Account xpub (watch-only)");
+    snprintf(line, sizeof(line), "m/%uh/%dh/0h%s  fp %08lx", purpose, testnet ? 1 : 0, purpose == 48 ? "/2h" : "",
+             (unsigned long)fp);
     put(&w, C_HINT, line);
     put(&w, C_TEXT, "");
     for (size_t i = 0; i < n; i += UI_COLS) {
@@ -269,7 +270,7 @@ void ui_xpub(ui_screen_t *s, const char *xpub, uint32_t fp, int testnet) {
 }
 
 /* The hash of the loaded wasm, grouped in eights because it is compared by eye with the browser's */
-void ui_hash(ui_screen_t *s, const char *name, unsigned len, const uint8_t h[32]) {
+void ui_hash(ui_screen_t *s, const char *name, unsigned int len, const uint8_t h[32]) {
     writer_t w = {s, 0};
     char line[UI_COLS + 1];
 

@@ -27,7 +27,7 @@
 static uint32_t wave[FRAMES * FRAME_S / 2];
 static uint8_t expect[FRAMES][W * H];
 static uint8_t captured[W * H] __attribute__((aligned(4)));
-static unsigned n_samples;
+static unsigned int n_samples;
 static uint8_t sensor_line0[8]; /* the first 8 bytes of the first row of the first frame (Y U Y U ...) */
 
 static uint32_t rnd(void) {
@@ -37,13 +37,13 @@ static uint32_t rnd(void) {
 }
 
 /* One sample: bits 0-7 are D0-D7, bit 8 PCLK, bit 9 HREF, bit 10 VSYNC; OUT is based at D0 */
-static void put(unsigned i, uint8_t d, int pclk, int href, int vsync) {
+static void put(unsigned int i, uint8_t d, int pclk, int href, int vsync) {
     uint32_t s = (uint32_t)d | (uint32_t)pclk << 8 | (uint32_t)href << 9 | (uint32_t)vsync << 10;
     wave[i / 2] = i % 2 ? (wave[i / 2] & 0xffff) | s << 16 : s;
 }
 
 static void build_wave(void) {
-    unsigned i = 0;
+    unsigned int i = 0;
     for (int f = 0; f < FRAMES; f++) {
         for (int k = 0; k < 4 * VSYNC_PX; k++) put(i++, 0, k % 2, 0, 1);
         for (int y = 0; y < SH; y++) {
@@ -124,7 +124,7 @@ static int run(const char *name, float clkdiv, int mid_frame) {
     uint64_t t;
     int ok, frame = mid_frame ? 1 : 0;
     /* Three cycles per sample, so this is how long a frame takes at 150MHz */
-    unsigned frame_us = (unsigned)(FRAME_S * 3 * clkdiv / 150);
+    unsigned int frame_us = (unsigned int)(FRAME_S * 3 * clkdiv / 150);
 
     if (mid_frame) {
         gen_start(clkdiv);
@@ -155,7 +155,8 @@ static int run(const char *name, float clkdiv, int mid_frame) {
         printf("\n  sensor row 1:");
         for (int i = 0; i < 8; i++) printf(" %02x", sensor_line0[i]);
         printf("\n  wave[0..3]: %08x %08x %08x %08x  samples %u\n", wave[0], wave[1], wave[2], wave[3], n_samples);
-        printf("  gen dma remaining %u / %u\n", (unsigned)dma_channel_hw_addr(dma_gen)->transfer_count, n_samples / 2);
+        printf("  gen dma remaining %u / %u\n", (unsigned int)dma_channel_hw_addr(dma_gen)->transfer_count,
+               n_samples / 2);
         /* Runs only the generator, to look at what is actually on the pins */
         gen_start(16.0f);
         printf("  pins:");
@@ -176,7 +177,7 @@ int main(void) {
 
     stdio_init_all();
     printf("\npio_loopback_test: sensor %dx%d decimated to %dx%d, PCLK %u kHz at clkdiv 1\n", SW, SH, W, H,
-           (unsigned)(clock_get_hz(clk_sys) / 6000));
+           (unsigned int)(clock_get_hz(clk_sys) / 6000));
     printf("unplug the camera's D0-D7, PCLK, HREF and VSYNC first, or the outputs fight\n");
     build_wave();
     sleep_ms(1); /* the first time_us_64() returns 0, so burn one before timing anything */

@@ -48,7 +48,7 @@ static void write_screens(const core_display_t *d, const char *prefix) {
     uint16_t line[UI_W];
     char path[256];
     ui_review_init(&ui, d);
-    for (unsigned i = 0; i < ui.n; i++) {
+    for (unsigned int i = 0; i < ui.n; i++) {
         FILE *f;
         snprintf(path, sizeof(path), "%s_%02u.ppm", prefix, i);
         if (!(f = fopen(path, "wb"))) return;
@@ -75,7 +75,7 @@ static long assemble_ur(const char *path) {
     static char line[PARSER_PSBT_MAX];
     FILE *f = fopen(path, "r");
     int32_t rc = 0;
-    unsigned parts = 0;
+    unsigned int parts = 0;
     uint64_t t0 = now(), max_part = 0;
 
     if (!f || !parser_host_ur_reset()) return -1;
@@ -168,10 +168,10 @@ static int emit_plan(const char *in_path) {
     if (len < 0 || !parser_host_parse(file_buf, (uint32_t)len, core_fingerprint(), &rc, &plan, prev, prevtx_arena,
                                       sizeof(prevtx_arena)))
         return printf("{\"error\":\"host\"}\n"), 1;
-    if (rc) return printf("{\"error\":\"parse\",\"rc\":%u}\n", (unsigned)rc), 0;
+    if (rc) return printf("{\"error\":\"parse\",\"rc\":%u}\n", (unsigned int)rc), 0;
 
     printf("{\"tx_version\":%d,\"locktime\":%u,\"inputs\":[", plan.tx_version, plan.locktime);
-    for (unsigned i = 0; i < plan.n_inputs; i++) {
+    for (unsigned int i = 0; i < plan.n_inputs; i++) {
         const plan_input_t *in = &plan.inputs[i];
         printf("%s{\"txid\":\"", i ? "," : "");
         /* Core reports a txid in reversed byte order; the plan holds it as it appears in the transaction */
@@ -180,16 +180,16 @@ static int emit_plan(const char *in_path) {
                (unsigned long long)in->amount);
         put_hex(in->spk.bytes, in->spk.len);
         printf("\",\"sighash\":%u,\"path\":[", in->sighash_type);
-        for (unsigned j = 0; j < in->key.depth; j++) printf("%s%u", j ? "," : "", in->key.path[j]);
+        for (unsigned int j = 0; j < in->key.depth; j++) printf("%s%u", j ? "," : "", in->key.path[j]);
         printf("],\"fingerprint\":\"%08x\"}", in->key.depth ? in->key.fingerprint : 0);
     }
     printf("],\"outputs\":[");
-    for (unsigned i = 0; i < plan.n_outputs; i++) {
+    for (unsigned int i = 0; i < plan.n_outputs; i++) {
         const plan_output_t *out = &plan.outputs[i];
         printf("%s{\"amount\":%llu,\"spk\":\"", i ? "," : "", (unsigned long long)out->amount);
         put_hex(out->spk.bytes, out->spk.len);
         printf("\",\"path\":[");
-        for (unsigned j = 0; j < out->key.depth; j++) printf("%s%u", j ? "," : "", out->key.path[j]);
+        for (unsigned int j = 0; j < out->key.depth; j++) printf("%s%u", j ? "," : "", out->key.path[j]);
         printf("]}");
     }
     printf("]");
@@ -205,7 +205,7 @@ static int sign(const char *in_path, const char *out_path, const char *preview) 
     core_review_t r;
     core_display_t d;
     core_sig_t sigs[PLAN_MAX_INPUTS];
-    unsigned n_sigs;
+    unsigned int n_sigs;
     uint32_t rc = 0, out_len;
     uint64_t t0 = now(), t1, t2, t3, t4;
     size_t ext = strlen(in_path);
@@ -218,12 +218,12 @@ static int sign(const char *in_path, const char *out_path, const char *preview) 
         !parser_host_parse(file_buf, (uint32_t)len, core_fingerprint(), &rc, &plan, prev, prevtx_arena,
                            sizeof(prevtx_arena)) ||
         rc)
-        return printf("parse rc=%u\n", (unsigned)rc), 1;
+        return printf("parse rc=%u\n", (unsigned int)rc), 1;
     t1 = now();
     if ((err = core_review(&plan, prev, &r)) != CORE_OK) return printf("review err=%d\n", err), 1;
     if ((err = core_display(&plan, &r, &d)) != CORE_OK) return printf("display err=%d\n", err), 1;
     t2 = now();
-    for (unsigned i = 0; i < d.n_outputs; i++) {
+    for (unsigned int i = 0; i < d.n_outputs; i++) {
         static const char *owner[] = {"send", "change", "self"};
         core_format_btc(d.outputs[i].amount, btc);
         printf("  %-6s %s BTC %s\n", owner[d.outputs[i].owner], btc, d.outputs[i].text);
@@ -241,7 +241,7 @@ static int sign(const char *in_path, const char *out_path, const char *preview) 
     if (write_ur(out_path, out_len, preview) != 0) return printf("ur encode failed\n"), 1;
     printf("  signed %u input(s); %s parse=%llu review=%llu sign=%llu finalize=%llu; pool_highmark=%u\n", n_sigs, UNIT,
            (unsigned long long)(t1 - t0), (unsigned long long)(t2 - t1), (unsigned long long)(t3 - t2),
-           (unsigned long long)(t4 - t3), (unsigned)parser_host_pool_highmark());
+           (unsigned long long)(t4 - t3), (unsigned int)parser_host_pool_highmark());
     return 0;
 }
 
@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
         int ok = len >= 0 && parser_host_parse(file_buf, (uint32_t)len, core_fingerprint(), &rc, &plan, prev,
                                                prevtx_arena, sizeof(prevtx_arena));
         printf("%s %s\n", argv[i], ok ? (rc ? "rejected" : "accepted") : "trap");
-        if (ok && rc) printf("  rc=%u\n", (unsigned)rc);
+        if (ok && rc) printf("  rc=%u\n", (unsigned int)rc);
     }
     return 0;
 }

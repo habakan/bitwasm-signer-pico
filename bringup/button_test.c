@@ -9,7 +9,7 @@ int main(void) {
     uint32_t prev;
 
     stdio_init_all();
-    for (unsigned gp = 2; gp <= 28; gp++) {
+    for (unsigned int gp = 2; gp <= 28; gp++) {
         gpio_init(gp);
         gpio_set_dir(gp, GPIO_IN);
         gpio_pull_up(gp);
@@ -19,7 +19,7 @@ int main(void) {
     prev = gpio_get_all();
     for (;;) {
         uint32_t now = gpio_get_all(), diff = (now ^ prev) & 0x1ffffffcu;
-        for (unsigned gp = 2; gp <= 28 && diff; gp++) {
+        for (unsigned int gp = 2; gp <= 28 && diff; gp++) {
             if (!(diff >> gp & 1)) continue;
             printf("GP%u %s\n", gp, (now >> gp & 1) ? "released" : "PRESSED");
             diff &= ~(1u << gp);

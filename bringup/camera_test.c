@@ -12,12 +12,12 @@
 /* Finds which line is missing. D0-D7, PCLK, HREF and VSYNC run consecutively from GP2 to GP12 */
 static void probe_signals(void) {
     uint32_t prev, changed = 0, high = 0;
-    unsigned edges[3] = {0};
+    unsigned int edges[3] = {0};
     uint64_t t0;
 
     /* VSYNC and its neighbours pulled up internally: high means nothing is connected, toggling means
      * the sensor is driving it, and low means it is shorted to ground */
-    for (unsigned gp = PIN_CAM_VSYNC; gp <= 17; gp++) gpio_pull_up(gp);
+    for (unsigned int gp = PIN_CAM_VSYNC; gp <= 17; gp++) gpio_pull_up(gp);
     sleep_ms(1);
     prev = gpio_get_all();
     t0 = time_us_64();
@@ -26,12 +26,12 @@ static void probe_signals(void) {
         uint32_t v = gpio_get_all();
         changed |= v ^ prev;
         high |= v;
-        for (unsigned i = 0; i < 3; i++)
+        for (unsigned int i = 0; i < 3; i++)
             if ((v ^ prev) >> (PIN_CAM_PCLK + i) & 1) edges[i]++;
         prev = v;
     }
     /* GP13 to GP17 are reported too, so a lead in the wrong hole shows up */
-    for (unsigned gp = PIN_CAM_D0; gp <= 17; gp++) {
+    for (unsigned int gp = PIN_CAM_D0; gp <= 17; gp++) {
         static const char *const name[] = {"D0",        "D1",        "D2",       "D3",        "D4",    "D5",
                                            "D6",        "D7",        "PCLK",     "HREF",      "VSYNC", "(joy UP)",
                                            "(cam SDA)", "(cam SCL)", "(lcd DC)", "(btn next)"};
@@ -39,9 +39,9 @@ static void probe_signals(void) {
                changed >> gp & 1 ? "toggling" : (high >> gp & 1 ? "stuck high" : "stuck low"));
     }
     /* The edge count says which line this really is: PCLK runs at MHz, HREF at rows and VSYNC at frames */
-    for (unsigned i = 0; i < 3; i++) {
+    for (unsigned int i = 0; i < 3; i++) {
         static const char *const want[] = {"PCLK", "HREF", "VSYNC"};
-        unsigned n = edges[i];
+        unsigned int n = edges[i];
         const char *got = n == 0 ? "nothing" : n > 50000 ? "PCLK" : n > 100 ? "HREF" : "VSYNC";
         printf("GP%u (where %s goes): %u edges/100ms -> %s\n", PIN_CAM_PCLK + i, want[i], n, got);
     }
@@ -49,7 +49,7 @@ static void probe_signals(void) {
 
     /* Counts the rows in a frame: 240 for QVGA, or 480 if it is still sending VGA */
     {
-        unsigned lines = 0;
+        unsigned int lines = 0;
         int prev_vs = gpio_get(PIN_CAM_VSYNC), prev_href = gpio_get(PIN_CAM_HREF), started = 0;
         uint64_t end = time_us_64() + 500000;
         while (time_us_64() < end) {

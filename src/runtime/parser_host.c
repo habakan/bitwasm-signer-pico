@@ -62,7 +62,7 @@ int parser_host_parse(const uint8_t *psbt, uint32_t len, uint32_t fingerprint, u
     /* prevtx offsets are relative to parser_input(), so the base has to be added */
     uint32_t base[1] = {0};
     if (!call("parser_input", 0, base)) return 0;
-    for (unsigned i = 0; i < plan->n_inputs && i < PLAN_MAX_INPUTS; i++) {
+    for (unsigned int i = 0; i < plan->n_inputs && i < PLAN_MAX_INPUTS; i++) {
         uint32_t off[1] = {i}, n[1] = {i};
         if (!call("parser_prevtx_off", 1, off) || !call("parser_prevtx_len", 1, n)) return 0;
         if (!n[0]) continue;
@@ -74,7 +74,7 @@ int parser_host_parse(const uint8_t *psbt, uint32_t len, uint32_t fingerprint, u
     return 1;
 }
 
-int parser_host_finalize(const core_sig_t *sigs, unsigned n, uint8_t *out, size_t cap, uint32_t *out_len) {
+int parser_host_finalize(const core_sig_t *sigs, unsigned int n, uint8_t *out, size_t cap, uint32_t *out_len) {
     uint32_t a[1] = {n};
     if (n > PLAN_MAX_INPUTS || !copy_in("parser_sigs", sigs, (uint32_t)(sizeof(core_sig_t) * n))) return 0;
     if (!call("parser_finalize", 1, a) || (int32_t)a[0] < 0 || a[0] > cap) return 0;

@@ -15,11 +15,11 @@ void bh_platform_destroy(void) {
 }
 
 /* Every allocation goes through WAMR's pool allocator */
-void *os_malloc(unsigned size) {
+void *os_malloc(unsigned int size) {
     (void)size;
     return NULL;
 }
-void *os_realloc(void *ptr, unsigned size) {
+void *os_realloc(void *ptr, unsigned int size) {
     (void)ptr;
     (void)size;
     return NULL;

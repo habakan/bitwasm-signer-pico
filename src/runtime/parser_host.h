@@ -16,7 +16,7 @@ int parser_host_init(const uint8_t *wasm, uint32_t wasm_len, void *pool, uint32_
 int parser_host_parse(const uint8_t *psbt, uint32_t len, uint32_t fingerprint, uint32_t *rc, plan_t *plan,
                       core_prevtx_t prev[PLAN_MAX_INPUTS], uint8_t *arena, size_t arena_cap);
 /* Hands the signatures to parser.wasm and takes the signed PSBT in out. 1 on success */
-int parser_host_finalize(const core_sig_t *sigs, unsigned n, uint8_t *out, size_t cap, uint32_t *out_len);
+int parser_host_finalize(const core_sig_t *sigs, unsigned int n, uint8_t *out, size_t cap, uint32_t *out_len);
 
 /* Feeds one part of an animated QR, as the string the QR held, and puts parser_ur_receive's result in
  * *rc. An *rc above 0 means the PSBT is complete, and that many bytes are copied to psbt */

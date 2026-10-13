@@ -40,6 +40,10 @@ check-c-tidy:
 	  --target=wasm32-wasip1 --sysroot=$(WASI)
 .PHONY: check-c-tidy
 
+check-c-unsigned-int:
+	python3 tools/check_unsigned_int.py $(C_FORMAT_FILES)
+.PHONY: check-c-unsigned-int
+
 build/test_xpub: components/parts/signer/tests/test_xpub.c $(CORE_SRC) components/parts/signer/*.h components/parts/signer/secp256k1_unity.c
 	cc -O2 -Wall -Wextra -Wno-unused-function -Icomponents/parts/signer -Icomponents/parts/parser/c/include -I$(SECP)/include -I$(SECP)/src $(SECP_DEFS) \
 	  -o $@ components/parts/signer/tests/test_xpub.c $(CORE_SRC) components/parts/signer/secp256k1_unity.c

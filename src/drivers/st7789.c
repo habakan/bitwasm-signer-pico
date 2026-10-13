@@ -10,7 +10,7 @@
 /* Kept modest because this is wired with jumper leads; the ST7789 itself takes writes up to 62.5MHz */
 #define LCD_BAUD (40 * 1000 * 1000)
 
-static void cmd(uint8_t c, const uint8_t *data, unsigned n) {
+static void cmd(uint8_t c, const uint8_t *data, unsigned int n) {
     gpio_put(PIN_LCD_DC, 0);
     spi_write_blocking(LCD_SPI, &c, 1);
     gpio_put(PIN_LCD_DC, 1);

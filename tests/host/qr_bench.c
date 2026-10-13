@@ -65,7 +65,7 @@ int main(void) {
     printf("quirc_heap %d\n", mallinfo().uordblks);
 #endif
 
-    for (unsigned i = 0; i < sizeof(frames) / sizeof(frames[0]); i++) {
+    for (unsigned int i = 0; i < sizeof(frames) / sizeof(frames[0]); i++) {
         const struct frame *f = &frames[i];
         uint8_t *buf = quirc_begin(q, NULL, NULL);
         memcpy(buf, f->pix, FRAME_W * FRAME_H); /* on the device the camera's DMA writes straight here */
@@ -104,7 +104,7 @@ int main(void) {
     printf("heap_arena %d\n", mallinfo().arena);
     uint32_t *p = qemu_stack;
     while (p < qemu_stack_top && *p == 0xdeadbeef) p++;
-    printf("native_stack_used %u\n", (unsigned)((char *)qemu_stack_top - (char *)p));
+    printf("native_stack_used %u\n", (unsigned int)((char *)qemu_stack_top - (char *)p));
 #endif
 #ifdef PICO_BUILD
     printf("done\n");
