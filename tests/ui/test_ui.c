@@ -28,25 +28,31 @@ int main(void) {
 
     display3(&d);
     ui_review_init(&r, &d);
-    CHECK(r.n == 6, "summary + 3 outputs + confirm + cancel");
-    CHECK(ui_review_key(&r, UI_KEY_PUSH) == UI_PENDING, "push on summary does nothing");
-    for (int i = 0; i < 4; i++) ui_review_key(&r, UI_KEY_RIGHT);
-    CHECK(r.cur == 4 && ui_review_key(&r, UI_KEY_PUSH) == UI_APPROVED, "approve after seeing all");
+    CHECK(r.n == 5, "summary + 3 outputs + final review");
+    CHECK(ui_review_key(&r, UI_KEY_SELECT) == UI_PENDING && r.cur == 1, "next page is selected initially");
+    for (int i = 1; i < 4; i++) ui_review_key(&r, UI_KEY_SELECT);
+    CHECK(r.cur == 4, "reaches final review after all outputs");
+    r.screens[4].selection = 2;
+    CHECK(ui_review_key(&r, UI_KEY_SELECT) == UI_APPROVED, "sign after seeing all");
 
-    /* The cancel screen is last: pressing in rejects, moving on wraps to the first */
+    /* Cancel is the default choice on the final review screen. */
     ui_review_init(&r, &d);
-    for (int i = 0; i < 5; i++) ui_review_key(&r, UI_KEY_DOWN);
-    CHECK(r.cur == 5, "cancel screen is last");
-    CHECK(ui_review_key(&r, UI_KEY_PUSH) == UI_REJECTED, "push on cancel screen rejects");
+    for (int i = 0; i < 4; i++) ui_review_key(&r, UI_KEY_SELECT);
+    CHECK(r.cur == 4 && ui_review_key(&r, UI_KEY_SELECT) == UI_REJECTED, "cancel returns to menu");
+
+    /* Review Again returns to the summary and requires reviewing every output again. */
     ui_review_init(&r, &d);
-    for (int i = 0; i < 6; i++) ui_review_key(&r, UI_KEY_DOWN);
-    CHECK(r.cur == 0, "next wraps to the start");
+    for (int i = 0; i < 4; i++) ui_review_key(&r, UI_KEY_SELECT);
+    ui_review_key(&r, UI_KEY_UP);
+    CHECK(ui_review_key(&r, UI_KEY_SELECT) == UI_PENDING && r.cur == 0 && r.seen == 1,
+          "review again returns to summary");
 
     /* Skipping a screen cannot reach the confirmation anyway, but a gap in seen is checked directly too */
     ui_review_init(&r, &d);
     r.cur = 4;
     r.seen |= 1u << 4;
-    CHECK(ui_review_key(&r, UI_KEY_PUSH) == UI_PENDING, "unseen outputs block approval");
+    r.screens[4].selection = 2;
+    CHECK(ui_review_key(&r, UI_KEY_SELECT) == UI_PENDING, "unseen outputs block approval");
     CHECK(ui_review_key(&r, UI_KEY_A) == UI_REJECTED, "cancel anywhere");
 
     /* Even the longest script is shown in full, not truncated: 30 characters over 6 rows */

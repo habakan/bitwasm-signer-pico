@@ -19,9 +19,10 @@
 typedef struct {
     char text[UI_ROWS][UI_COLS + 1];
     uint16_t color[UI_ROWS];
+    uint8_t is_menu, selection;
 } ui_screen_t;
 
-enum { UI_KEY_UP, UI_KEY_DOWN, UI_KEY_LEFT, UI_KEY_RIGHT, UI_KEY_PUSH, UI_KEY_A, UI_KEY_B, UI_KEY_C };
+enum { UI_KEY_UP, UI_KEY_DOWN, UI_KEY_LEFT, UI_KEY_RIGHT, UI_KEY_SELECT, UI_KEY_A, UI_KEY_B, UI_KEY_C };
 enum { UI_PENDING = 0, UI_APPROVED, UI_REJECTED };
 
 typedef struct {
@@ -30,10 +31,10 @@ typedef struct {
     uint32_t seen; /* which screens have been shown; signing is refused until every one has been */
 } ui_review_t;
 
-/* The screens, in order: the summary, one per output, then the confirmation */
+/* The screens, in order: the summary, one per output, then the final choice */
 void ui_review_init(ui_review_t *r, const core_display_t *d);
-/* Moves between screens on a key press. On the confirmation screen, PUSH gives UI_APPROVED and A
- * gives UI_REJECTED */
+/* Selects Back/Next page while reviewing and Review again/Cancel/Sign on the final screen.
+ * Returns UI_APPROVED or UI_REJECTED when the review ends. */
 int ui_review_key(ui_review_t *r, int key);
 void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]);
 void ui_render_scan_line(const uint8_t *img, int camera_w, int camera_h, const char *status, int y,

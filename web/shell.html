@@ -15,10 +15,11 @@
 * { box-sizing: border-box; }
 html, body { background-color: transparent; }
 body { margin: 0; color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }
-main { max-width: 500px; margin: 0 auto; padding: 12px; }
+main { max-width: 500px; min-height: 100vh; margin: 0 auto; padding: 12px;
+  display:flex; flex-direction:column; justify-content:center; }
 html.embedded .service-panel { display:none; }
 p { margin: 0 0 12px; color: var(--muted); }
-.device { max-width:100%; padding:14px; border:1px solid #56534e; border-radius:22px;
+.device { width:min(100%,440px); max-width:100%; margin-inline:auto; padding:14px; border:1px solid #56534e; border-radius:22px;
   background:linear-gradient(145deg,#343330 0%,#1c1b19 42%,#292825 100%); box-shadow:0 16px 36px #0005,inset 0 1px #ffffff1c; cursor:grab; }
 .device.dragging, .device.dragging * { user-select:none; }
 .device.dragging { cursor:grabbing; }
@@ -82,16 +83,16 @@ video { display: none; }
     </div>
     <div class="device-controls" id="device-controls" data-layout="five-way">
       <div class="layout-switch" role="group" aria-label="操作方式">
-        <button type="button" data-layout-choice="two-button" aria-pressed="false">2ボタン</button>
-        <button type="button" data-layout-choice="five-way" aria-pressed="true">5方向キー</button>
+        <button type="button" data-layout-choice="two-button" aria-pressed="false">2-Button</button>
+        <button type="button" data-layout-choice="five-way" aria-pressed="true">5-Way Pad</button>
       </div>
       <div class="two-button-controls" aria-label="2ボタン操作">
-        <button data-key="1" aria-label="次へ">次へ</button>
-        <button data-key="4" aria-label="決定">PUSH</button>
+        <button data-key="1" aria-label="NEXT">NEXT</button>
+        <button data-key="4" aria-label="SELECT">SELECT</button>
       </div>
       <div class="pad" aria-label="方向パッド">
         <span></span><button data-key="0" aria-label="Up">&#9650;</button><span></span>
-        <button data-key="2" aria-label="Left">&#9664;</button><button data-key="4" aria-label="決定">PUSH</button><button data-key="3" aria-label="Right">&#9654;</button>
+        <button data-key="2" aria-label="Left">&#9664;</button><button data-key="4" aria-label="SELECT">SELECT</button><button data-key="3" aria-label="Right">&#9654;</button>
         <span></span><button data-key="1" aria-label="Down">&#9660;</button><span></span>
       </div>
     </div>
@@ -99,9 +100,9 @@ video { display: none; }
   <div class="device-status"><span class="status-led" aria-hidden="true"></span><span class="camera-label" id="camera-label">仮想カメラ · QR待機中</span></div>
 </section>
 <details class="service-panel">
-  <summary>Signer details</summary>
+  <summary>Tools</summary>
   <div class="service-body">
-    <p class="help">Pico 2ファームウェアと署名コアをブラウザで実行しています。両方の操作方式で「次へ」で進み、「PUSH」で決定します。5方向キーでは前の画面にも戻れます。キーボード: ↓ / Nで次へ、Enterで決定、Escでキャンセル。</p>
+    <p class="help">Pico 2ファームウェアと署名コアをブラウザで実行しています。2ボタンではNEXTで移動し、SELECTで決定します。5方向キーでは前の画面にも戻れます。キーボード: ↓ / NでNEXT、EnterでSELECT、Escで戻るかキャンセル。</p>
     <button class="download" id="download" disabled>Download signed UR</button>
     <pre id="log"></pre>
   </div>
