@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>仮想AirGap取引 | bitwasm-signer-pico</title>
 <style>
-:root { color-scheme: light dark; --bg:#f4f2ee; --fg:#1d1c1a; --muted:#6b6760; --panel:#fff; --line:#d9d5cd; --accent:#3d3b38; --accent-fg:#f4f2ee; --warn:#fdecc8; }
-@media (prefers-color-scheme: dark) { :root { --bg:#161514; --fg:#ece9e3; --muted:#9c978e; --panel:#201f1d; --line:#34322f; --accent:#3a3835; --accent-fg:#f4f2ee; --warn:#3b2c0c; } }
+:root { color-scheme: light dark; --bg:#f4f2ee; --fg:#1d1c1a; --muted:#6b6760; --panel:#fff; --line:#d9d5cd; --accent:#3d3b38; --accent-fg:#f4f2ee; --warn:#fdecc8; --desk-light:#b68a61; --desk:#8a6244; --desk-grain:rgba(255,240,218,.09); --desk-seam:rgba(54,31,16,.18); }
+@media (prefers-color-scheme: dark) { :root { --bg:#161514; --fg:#ece9e3; --muted:#9c978e; --panel:#201f1d; --line:#34322f; --accent:#3a3835; --accent-fg:#f4f2ee; --warn:#3b2c0c; --desk-light:#68503b; --desk:#382a20; --desk-grain:rgba(255,224,179,.07); --desk-seam:rgba(0,0,0,.28); } }
 * { box-sizing:border-box; }
-body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,sans-serif; }
+body { margin:0; background-color:var(--desk); background-image:repeating-linear-gradient(1deg,transparent 0 16px,var(--desk-grain) 17px 18px,transparent 19px 43px),repeating-linear-gradient(90deg,transparent 0 338px,var(--desk-seam) 339px 341px,var(--desk-grain) 342px,transparent 343px 680px),linear-gradient(150deg,var(--desk-light),var(--desk)); background-attachment:fixed; color:var(--fg); font:15px/1.5 system-ui,sans-serif; }
 main { max-width:1540px; margin:auto; padding:24px 16px 48px; }
 h1 { font-size:25px; margin:0 0 6px; }
 .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; }
@@ -266,7 +266,7 @@ import createSendSupport from "./send_support.js";
 import { Parser } from "./parser.mjs";
 
 const API = "https://mempool.space/signet/api";
-const PARSER_SHA256 = "329112642baa63a074d63fc75dddaff0b7b47ce7e69b036b63844b23ca050926";
+const PARSER_SHA256 = "b23c0dd04ef37582504b16ade472de62aa4e4038ffb142a79004ec98208bb88b";
 const MAX_INDEX = 999;
 const DEFAULT_DESTINATION = "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx";
 const DEFAULT_SOURCE_ADDRESS = "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl";
@@ -1576,6 +1576,7 @@ async function loadSourceAddress() {
 
 try {
   support = await createSendSupport();
+  paintQr(TEST_SEEDQR, seedCanvas);
   const parserBytes = await fetch("./parser.wasm").then(r => {
     if (!r.ok) throw new Error("parser.wasm を読み込めません。");
     return r.arrayBuffer();
@@ -1583,7 +1584,6 @@ try {
   parser = await Parser.load(parserBytes, { sha256: PARSER_SHA256 });
   try { if ("BarcodeDetector" in window) qrDetector = new BarcodeDetector({ formats: ["qr_code"] }); } catch {}
   destinationInput.value = DEFAULT_DESTINATION;
-  paintQr(TEST_SEEDQR, seedCanvas);
   qrActions.hidden = true;
   walletLaptop.addEventListener("pointerdown", event => {
     if (event.button !== 0 || event.target.closest("button,input,textarea,select,a,label,summary,[contenteditable='true']")) return;
