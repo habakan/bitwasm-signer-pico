@@ -8,7 +8,7 @@
 | Breadboard | EIC-102J | 1 | Pico 2 H, display, switches, and wiring |
 | Display | M154-240240-RGB (ST7789V, 1.54 inch) | 1 | Header fitted; no soldering needed |
 | Camera | OV7675 board, Arducam B0070 | 1 | 3.3V supply; connected with male-to-female jumper wires |
-| Tactile switches | TVDP01-G73BB | 2 | Next and approve; a third switch is spare |
+| Tactile switches | TVDP01-G73BB | 2 | NEXT and SELECT; a third switch is spare |
 | Debug probe | Raspberry Pi Debug Probe | 1 | SWD flashing and UART logs; includes the SH-SH SWD cable |
 | USB cables | Data cables for the Pico and Debug Probe | 2 | One for each board |
 | Jumper wires | Male-to-male and male-to-female | As needed | For signal and power connections |
@@ -31,13 +31,13 @@ are alternatives or earlier experiments; they are not part of this build.
 | GP14 | 19 | camera SIO-D (I2C1 SDA) | |
 | GP15 | 20 | camera SIO-C (I2C1 SCL) | |
 | GP16 | 21 | panel DC | |
-| GP17 | 22 | next button | tactile switch to GND |
+| GP17 | 22 | NEXT button | tactile switch to GND |
 | GP18 | 24 | panel SCL (SPI0 SCK) | |
 | GP19 | 25 | panel SDA (SPI0 TX) | |
 | GP20 | 26 | unused | spare |
 | GP21 | 27 | camera XCLK (CLOCK GPOUT0) | OV7670 / OV7675 only; spare on an OV2640 board with a crystal |
 | GP22 | 29 | unused | spare |
-| GP26 | 31 | approve button | tactile switch to GND |
+| GP26 | 31 | SELECT button | tactile switch to GND |
 | GP27 | 32 | unused | spare |
 | GP28 | 34 | unused | spare |
 
@@ -52,7 +52,7 @@ Things to watch when building this on a breadboard:
 - On the TVDP01-G73BB tactile switches, the two pins that straddle the channel turned out to be the
   connected pair: pressing joins row n to row n+2. Take GND from row n and the signal from row n+2.
   If one does not respond, `button_test.uf2` shows which GPIO actually goes low
-- The current build uses two buttons to step through the review screens: "next" (GP17) and "approve" (GP26)
+- The current build uses NEXT (GP17) to move and SELECT (GP26) to confirm
 
 - GP23 (power control), GP24 (VBUS sense), GP25 (LED) and GP29 (VSYS monitor) are used by the board
   itself and not brought out
@@ -100,7 +100,7 @@ already pulled up to +V through 10k and go to GND when pressed.
 
 ### Tactile switches (two used)
 
-The current build uses two TVDP01-G73BB switches: next on GP17 and approve on GP26. One side goes to
+The current build uses two TVDP01-G73BB switches: NEXT on GP17 and SELECT on GP26. One side goes to
 the GPIO and the other to GND; the RP2350's internal pull-ups are enabled.
 
 ### The camera
@@ -170,14 +170,14 @@ sometimes refuse the `cp`, in which case drag it in Finder.
 1. With nothing but the Pico 2 H and the Debug Probe, flash `build/rp2350/signer.uf2` and confirm the
    measured signing times appear on the UART at 115200. `psbt_bench.uf2` times a full PSBT round
    (done; `docs/signing-architecture.md` §11)
-2. **Before soldering anything**: put three tactile switches in the breadboard (GP17 next, GP26
-   approve, GP27 reject, each to GND) and flash `build/rp2350/app_nolcd.uf2`. The review screens' text
+2. **Before soldering anything**: put three tactile switches in the breadboard (GP17 NEXT, GP26
+   SELECT, GP27 reject, each to GND) and flash `build/rp2350/app_nolcd.uf2`. The review screens' text
    comes out on the UART instead of the panel, so the buttons, the screen flow, approving and signing,
    and the UR output can all be checked with nothing else wired
 3. **Done (2026-10-01)**: wired the panel and two tactile switches and flashed `build/rp2350/app.elf`.
    Five review screens appeared; stepping through all of them and approving produced a signature
    (129ms for two inputs) and the signed PSBT came back as an animated QR. The joystick was not
-   needed — next (GP17) and approve (GP26) were enough. Reading it with a wallet was still unverified
+   needed — NEXT (GP17) and SELECT (GP26) were enough. Reading it with a wallet was still unverified
 4. **Done (2026-10-02)**: wired the camera (OV7675 / Arducam B0070). Read PID 0x76 and VER 0x73, and
    captured QVGA successfully: 191ms per frame, about 5.2fps, with quirc decoding in 61ms.
    `camera_test.uf2` shows the captured QVGA scaled down on the LCD, reads QRs with our quirc fork, and

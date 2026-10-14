@@ -55,7 +55,7 @@ Update this page and both YAML files when the wiring changes.
 | 16 | GP12 (camera VSYNC) | GP19 (LCD SDA) |
 | 17 | GP13 | GP18 (LCD SCL) |
 | 18 | GND | GND |
-| 19 | GP14 (camera SDA) | GP17 (next button) |
+| 19 | GP14 (camera SDA) | GP17 (NEXT button) |
 | 20 | GP15 (camera SCL) | GP16 (LCD DC) |
 
 ## Debug Probe (including connections off the breadboard)

@@ -51,7 +51,7 @@ Not reviewed by a third party. signet only. See [Disclaimer](../README.md#discla
 - While unlocked, the master key and chain code are in RAM — they must be, to sign.
   **An attached debug probe (SWD) can read them.** Measured: see
   [docs/signing-architecture.md](signing-architecture.md). Disconnect the probe for real use.
-- `Lock (wipe seed)` zeroes them; this was verified by dumping RAM before and after.
+- `Clear seed` zeroes them; this was verified by dumping RAM before and after.
 - The mnemonic, the BIP39 seed, the SeedQR payload, the camera frame and derived child keys are
   wiped after use, and signing nonces do not survive — all verified with `tools/security/ram_keys.py`.
 - Entering the USB bootloader (BOOTSEL) clears SRAM entirely, so that path cannot read a leftover key.

@@ -459,7 +459,7 @@ that, so it is handled by how the device is used, and by leaving fewer traces.
    hardcoded to 1 in CMakeLists, which meant any build could select the test seed. For development,
    say so explicitly: `make run TEST_SEED=1 TESTNET=1`
 2. **Physically remove the Debug Probe.** Unplug the cable after flashing. The UART log goes with it
-3. **Finish with `Lock (wipe seed)`.** Always, when done. `core_unload` zeroes the key
+3. **Finish with `Clear seed`.** Always, when done. `core_unload` zeroes the key
 
 Traces of the seed that were being left behind now get cleared too.
 

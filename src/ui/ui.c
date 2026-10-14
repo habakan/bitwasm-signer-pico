@@ -106,15 +106,15 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
     put_amount(&w, C_SEND, "Spend ", d->spend, 0);
     put_amount(&w, C_TEXT, "Fee ", d->fee, 1);
     put(&w, C_TEXT, "");
-    put_number(&w, C_TEXT, "Outputs:  ", d->n_outputs);
+    put_number(&w, C_TEXT, "Outputs: ", d->n_outputs);
     put_number(&w, C_TEXT, "External: ", n_send);
-    w.row = UI_ROWS - 1;
-    put(&w, C_HINT, "DOWN: review outputs");
+    w.s->selection = 1;
 
     for (unsigned int i = 0; i < d->n_outputs; i++) {
         const core_display_output_t *o = &d->outputs[i];
         uint16_t color = o->owner == CORE_OUT_EXTERNAL ? C_SEND : C_OURS;
         w = (writer_t){&r->screens[r->n++], 0};
+        w.s->selection = 1;
         put_header(&w);
         put_counter(&w, C_TITLE, "Output ", i + 1, d->n_outputs);
         put(&w, color, owner[o->owner]);
@@ -125,48 +125,56 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
             : o->text_kind == CORE_TEXT_OP_RETURN ? "OP_RETURN data (hex):"
                                                   : "Script (hex):");
         put_wrapped(&w, C_TEXT, o->text);
-        w.row = UI_ROWS - 1;
-        put(&w, C_HINT, "DOWN: next screen");
     }
 
     w = (writer_t){&r->screens[r->n++], 0};
     put_header(&w);
-    put(&w, C_TITLE, "Sign this transaction?");
+    put(&w, C_TITLE, "Final review");
     put(&w, C_TEXT, "");
     put_amount(&w, C_SEND, "Spend ", d->spend, 0);
     put_amount(&w, C_TEXT, "Fee ", d->fee, 1);
-    w.row = UI_ROWS - 2;
-    put(&w, C_HINT, "PUSH: sign");
-    put(&w, C_HINT, "DOWN: cancel option");
-
-    /* The last screen is the cancel screen, so two buttons are enough to reject; it wraps to the first */
-    w = (writer_t){&r->screens[r->n++], 0};
-    put_header(&w);
-    put(&w, C_TITLE, "Cancel transaction?");
-    put(&w, C_TEXT, "");
-    put(&w, C_TEXT, "Nothing is signed.");
-    w.row = UI_ROWS - 2;
-    put(&w, C_HINT, "PUSH: cancel");
-    put(&w, C_HINT, "DOWN: return to start");
+    put_number(&w, C_TEXT, "Outputs: ", d->n_outputs);
+    put_number(&w, C_TEXT, "External: ", n_send);
+    w.s->selection = 1;
     r->seen = 1;
 }
 
 int ui_review_key(ui_review_t *r, int key) {
-    /* Confirmation is second from last and cancel is last. Signing needs every screen to have been
-     * seen, the cancel screen aside */
-    unsigned int sign = r->n - 2, must_see = (1u << (r->n - 1)) - 1;
+    unsigned int final = r->n - 1, must_see = (1u << final) - 1;
     if (key == UI_KEY_A) return UI_REJECTED;
-    if (key == UI_KEY_RIGHT || key == UI_KEY_DOWN) r->cur = (r->cur + 1) % r->n;
-    if (key == UI_KEY_LEFT || key == UI_KEY_UP) r->cur = (r->cur + r->n - 1) % r->n;
+    if (key == UI_KEY_SELECT) {
+        if (r->cur == final) {
+            if (r->screens[final].selection == 0) {
+                r->cur = 0;
+                r->screens[0].selection = 1;
+                r->seen = 1;
+            } else if (r->screens[final].selection == 1) {
+                return UI_REJECTED;
+            } else if ((r->seen & must_see) == must_see) {
+                return UI_APPROVED;
+            }
+        } else if (r->screens[r->cur].selection == 0) {
+            if (r->cur == 0) return UI_REJECTED;
+            r->cur--;
+        } else {
+            r->cur++;
+        }
+        r->screens[r->cur].selection = 1;
+    } else if (key == UI_KEY_DOWN || key == UI_KEY_RIGHT) {
+        unsigned int choices = r->cur == final ? 3 : 2;
+        r->screens[r->cur].selection = (r->screens[r->cur].selection + 1) % choices;
+    } else if (key == UI_KEY_UP || key == UI_KEY_LEFT) {
+        unsigned int choices = r->cur == final ? 3 : 2;
+        r->screens[r->cur].selection = (r->screens[r->cur].selection + choices - 1) % choices;
+    }
     r->seen |= 1u << r->cur;
-    if (key == UI_KEY_PUSH && r->cur == r->n - 1) return UI_REJECTED;
-    if (key == UI_KEY_PUSH && r->cur == sign && (r->seen & must_see) == must_see) return UI_APPROVED;
     return UI_PENDING;
 }
 
 static void menu_draw(ui_menu_t *m) {
     writer_t w = {&m->screen, 0};
     memset(&m->screen, 0, sizeof(m->screen));
+    m->screen.is_menu = 1;
     put_header(&w);
     put(&w, C_TITLE, m->title);
     put(&w, C_TEXT, "");
@@ -178,8 +186,6 @@ static void menu_draw(ui_menu_t *m) {
         line[UI_COLS] = 0;
         put(&w, i == m->cur ? C_TITLE : C_TEXT, line);
     }
-    w.row = UI_ROWS - 1;
-    put(&w, C_HINT, "DOWN: move   PUSH: select");
 }
 
 void ui_menu_init(ui_menu_t *m, const char *title, const char *const *items, unsigned int n) {
@@ -191,7 +197,7 @@ void ui_menu_init(ui_menu_t *m, const char *title, const char *const *items, uns
 }
 
 int ui_menu_key(ui_menu_t *m, int key) {
-    if (key == UI_KEY_PUSH || key == UI_KEY_RIGHT) return (int)m->cur;
+    if (key == UI_KEY_SELECT || key == UI_KEY_RIGHT) return (int)m->cur;
     if (key == UI_KEY_A || key == UI_KEY_LEFT) return UI_MENU_BACK;
     if (key == UI_KEY_DOWN) m->cur = (m->cur + 1) % m->n;
     if (key == UI_KEY_UP) m->cur = (m->cur + m->n - 1) % m->n;
@@ -206,19 +212,10 @@ void ui_message(ui_screen_t *s, const char *title, const char *body, int warn) {
     put(&w, warn ? C_SEND : C_TITLE, title);
     put(&w, C_TEXT, "");
     if (body) put_wrapped(&w, C_TEXT, body);
-    w.row = UI_ROWS - 1;
-    put(&w, C_HINT, "PUSH: ok");
 }
 
 static int text_starts(const char *text, const char *prefix) {
     return strncmp(text, prefix, strlen(prefix)) == 0;
-}
-
-static int is_action_line(const char *text) {
-    static const char *const prefixes[] = {"PUSH:", "DOWN:", "UP:", "LEFT:", "RIGHT:", "ANY KEY", "A:", "B:", "PRESS"};
-    for (unsigned int i = 0; i < sizeof(prefixes) / sizeof(*prefixes); i++)
-        if (text_starts(text, prefixes[i])) return 1;
-    return 0;
 }
 
 static void fill_rect_line(uint16_t line[UI_W], int y, int x, int top, int width, int height, uint16_t color) {
@@ -259,16 +256,14 @@ static void draw_dot(uint16_t line[UI_W], int y, int cx, int cy, int radius, uin
     }
 }
 
-static const char *screen_section(const char *title, int ready, int setup, int summary, int output, int approval,
-                                  int cancel) {
+static const char *screen_section(const char *title, int ready, int setup, int summary, int output, int approval) {
     if (setup) return "WALLET SETUP";
     if (ready) return "BITWASM SIGNER";
     if (summary) return "SIGN PSBT / SUMMARY";
     if (output) return title;
     if (approval) return "FINAL REVIEW";
-    if (cancel) return "SIGN PSBT / CANCEL";
-    if (strstr(title, "xpub")) return "WALLET INFO";
-    if (strstr(title, "hash")) return "DEVICE INFO";
+    if (strstr(title, "xpub")) return "WATCH-ONLY WALLET";
+    if (strstr(title, "hash")) return "VERIFY PSBT PARSER";
     return "BITWASM SIGNER";
 }
 
@@ -291,31 +286,16 @@ static void draw_menu(uint16_t line[UI_W], int y, const ui_screen_t *s, int top)
     }
 }
 
-static void draw_footer(uint16_t line[UI_W], int y, const ui_screen_t *s) {
-    const char *actions[2] = {NULL, NULL};
-    int count = 0;
-    for (int r = 0; r < UI_ROWS && count < 2; r++)
-        if (s->text[r][0] && is_action_line(s->text[r])) actions[count++] = s->text[r];
-    fill_rect_line(line, y, 0, 207, UI_W, 33, C_PANEL);
-    fill_rect_line(line, y, 10, 207, UI_W - 20, 1, C_BORDER);
-    if (count == 1) draw_small(line, y, 12, 215, actions[0], C_HINT);
-    if (count == 2) {
-        draw_small(line, y, 12, 208, actions[0], C_HINT);
-        draw_small(line, y, 12, 224, actions[1], C_HINT);
-    }
-}
-
 static const char *row_value(const ui_screen_t *s, const char *prefix, uint16_t color) {
     size_t n = strlen(prefix);
-    for (int r = 2; r < UI_ROWS - 1; r++)
-        if (s->color[r] == color && strncmp(s->text[r], prefix, n) == 0) return s->text[r] + n;
+    for (int r = 2; r < UI_ROWS - 1; r++) {
+        if (s->color[r] == color && strncmp(s->text[r], prefix, n) == 0) {
+            const char *value = s->text[r] + n;
+            while (*value == ' ') value++;
+            return value;
+        }
+    }
     return NULL;
-}
-
-static int row_with_text(const ui_screen_t *s, const char *text) {
-    for (int r = 2; r < UI_ROWS - 1; r++)
-        if (strcmp(s->text[r], text) == 0) return r;
-    return -1;
 }
 
 static void draw_card(uint16_t line[UI_W], int y, int x, int top, int width, int height, uint16_t bg, uint16_t border) {
@@ -328,14 +308,40 @@ static void draw_card(uint16_t line[UI_W], int y, int x, int top, int width, int
         for (int i = 0; i < width; i++) line[x + i] = border;
 }
 
+static void draw_review_actions(uint16_t line[UI_W], int y, const ui_screen_t *s, int final) {
+    if (final) {
+        static const char *const labels[] = {"REVIEW", "CANCEL", "SIGN"};
+        for (int i = 0; i < 3; i++) {
+            int x = 12 + i * 74, active = s->selection == i;
+            uint16_t color = active ? C_TITLE : C_TEXT;
+            draw_card(line, y, x, 194, 68, 36, active ? C_ACTIVE : C_PANEL, active ? C_TITLE : C_BORDER);
+            if (i == 0) {
+                draw_small(line, y, x + 10, 197, labels[i], color);
+                draw_small(line, y, x + 14, 213, "AGAIN", color);
+            } else {
+                int text_width = (int)strlen(labels[i]) * FONT_W;
+                draw_small(line, y, x + (68 - text_width) / 2, 204, labels[i], color);
+            }
+        }
+    } else {
+        const char *labels[] = {"BACK", "NEXT PAGE"};
+        for (int i = 0; i < 2; i++) {
+            int x = i == 0 ? 12 : 126;
+            int active = s->selection == i;
+            int text_width = (int)strlen(labels[i]) * FONT_W;
+            draw_card(line, y, x, 207, 102, 24, active ? C_ACTIVE : C_PANEL, active ? C_TITLE : C_BORDER);
+            draw_small(line, y, x + (102 - text_width) / 2, 211, labels[i], active ? C_TITLE : C_TEXT);
+        }
+    }
+}
+
 void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
     const char *title = s->text[1];
     int setup = strcmp(title, "No seed loaded") == 0;
-    int ready = text_starts(title, "Signet fp ") || text_starts(title, "Signer fp ");
+    int ready = text_starts(title, "FP ");
     int summary = strcmp(title, "Review transaction") == 0;
     int output = text_starts(title, "Output ");
-    int approval = text_starts(title, "Sign this transaction");
-    int cancel = text_starts(title, "Cancel transaction");
+    int approval = text_starts(title, "Final review");
     int net_len;
     const char *network;
     char heading[UI_COLS + 1];
@@ -350,22 +356,22 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
     network = "MAINNET";
 #endif
     net_len = (int)strlen(network) * FONT_W;
-    draw_small(line, y, 13, 8, screen_section(title, ready, setup, summary, output, approval, cancel), C_HINT);
+    draw_small(line, y, 13, 8, screen_section(title, ready, setup, summary, output, approval), C_HINT);
     draw_small(line, y, UI_W - 13 - net_len, 8, network, C_HINT);
     fill_rect_line(line, y, 12, 27, UI_W - 24, 1, C_BORDER);
 
-    if (ready) strcpy(heading, "Signer ready");
-    else if (output) strcpy(heading, "Check recipient");
+    if (output) strcpy(heading, "Check recipient");
     else strcpy(heading, title);
-    draw_normal(line, y, 13, 32, heading, s->color[1] == C_SEND ? C_SEND : C_TITLE);
+    if (ready) {
+        draw_normal(line, y, 13, 32, "Fingerprint", C_TITLE);
+        draw_normal(line, y, 13, 52, title + 3, C_OURS);
+    } else {
+        draw_normal(line, y, 13, 32, heading, s->color[1] == C_SEND ? C_SEND : C_TITLE);
+    }
 
-    if (setup || ready) {
+    if (s->is_menu) {
         if (ready) {
-            draw_small(line, y, 14, 56, "FINGERPRINT", C_HINT);
-            draw_normal(line, y, 141, 52, title + 10, C_OURS);
-            draw_dot(line, y, 17, 82, 3, C_OURS);
-            draw_small(line, y, 26, 74, "Key is in RAM", C_OURS);
-            draw_menu(line, y, s, 94);
+            draw_menu(line, y, s, 78);
         } else {
             draw_menu(line, y, s, 67);
         }
@@ -374,16 +380,24 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
         const char *fee = row_value(s, "Fee", C_TEXT);
         const char *outputs = row_value(s, "Outputs:", C_TEXT);
         const char *external = row_value(s, "External:", C_TEXT);
-        draw_card(line, y, 12, 56, 216, 52, C_SEND_BG, C_SEND_BORDER);
+        char total_line[UI_COLS + 1], external_line[UI_COLS + 1];
+        draw_card(line, y, 12, 56, 216, approval ? 45 : 52, C_SEND_BG, C_SEND_BORDER);
         draw_small(line, y, 20, 60, "YOU SEND", C_HINT);
         if (spend) draw_normal(line, y, 20, 80, spend, C_SEND);
-        draw_card(line, y, 12, 115, 102, 72, C_PANEL, C_BORDER);
-        draw_card(line, y, 126, 115, 102, 72, C_PANEL, C_BORDER);
-        draw_small(line, y, 20, 119, "NETWORK FEE", C_HINT);
-        if (fee) draw_small(line, y, 20, 140, fee, C_TEXT);
-        draw_small(line, y, 134, 119, "OUTPUTS", C_HINT);
-        if (outputs) draw_small(line, y, 134, 140, outputs, C_TEXT);
-        if (external) draw_small(line, y, 134, 157, external, C_TEXT);
+        int details_y = approval ? 106 : 115;
+        draw_card(line, y, 12, details_y, 102, approval ? 64 : 72, C_PANEL, C_BORDER);
+        draw_card(line, y, 126, details_y, 102, approval ? 64 : 72, C_PANEL, C_BORDER);
+        draw_small(line, y, 20, details_y + 4, "NETWORK FEE", C_HINT);
+        if (fee) draw_small(line, y, 20, details_y + 25, fee, C_TEXT);
+        draw_small(line, y, 134, details_y + 4, "OUTPUTS", C_HINT);
+        if (outputs) {
+            snprintf(total_line, sizeof(total_line), "Total: %s", outputs);
+            draw_small(line, y, 134, details_y + 25, total_line, C_TEXT);
+        }
+        if (external) {
+            snprintf(external_line, sizeof(external_line), "External: %s", external);
+            draw_small(line, y, 134, details_y + 42, external_line, C_TEXT);
+        }
     } else if (output) {
         int owner_row = -1, amount_row = -1, label_row = -1;
         const char *address_label = "ADDRESS";
@@ -391,7 +405,7 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
             const char *text = s->text[r];
             if (!strcmp(text, "Send to") || !strcmp(text, "Change") || !strcmp(text, "Self-transfer")) owner_row = r;
             else if (text[0] && (s->color[r] == C_SEND || s->color[r] == C_OURS)) amount_row = r;
-            else if (s->color[r] == C_HINT && text[0] && !is_action_line(text)) {
+            else if (s->color[r] == C_HINT && text[0]) {
                 label_row = r;
                 if (text_starts(text, "OP_RETURN")) address_label = "OP_RETURN DATA";
                 else if (text_starts(text, "Script")) address_label = "SCRIPT";
@@ -412,7 +426,7 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
             char part[UI_COLS + 1];
             int line_y = 151, used = 0;
             for (int r = label_row + 1; r < UI_ROWS - 1 && line_y < 195; r++) {
-                if (!s->text[r][0] || is_action_line(s->text[r])) break;
+                if (!s->text[r][0]) break;
                 for (size_t c = 0; s->text[r][c] && line_y < 195; c++) {
                     part[used++] = s->text[r][c];
                     if (used == 26) {
@@ -425,14 +439,10 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
             }
             if (used && line_y < 195) part[used] = 0, draw_small(line, y, 16, line_y, part, C_TEXT);
         }
-    } else if (cancel) {
-        int row = row_with_text(s, "Nothing is signed.");
-        draw_card(line, y, 12, 64, 216, 53, C_SEND_BG, C_SEND_BORDER);
-        if (row >= 0) draw_normal(line, y, 20, 82, s->text[row], C_SEND);
     } else {
         int line_y = 57;
         for (int r = 2; r < UI_ROWS - 1 && line_y < 198; r++) {
-            if (!s->text[r][0] || is_action_line(s->text[r]) || is_menu_row(s->text[r])) continue;
+            if (!s->text[r][0] || is_menu_row(s->text[r])) continue;
             size_t length = strlen(s->text[r]);
             for (size_t start = 0; start < length && line_y < 198; start += 28) {
                 char part[29];
@@ -444,7 +454,7 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
             }
         }
     }
-    draw_footer(line, y, s);
+    if (summary || output || approval) draw_review_actions(line, y, s, approval);
 }
 
 void ui_render_scan_line(const uint8_t *img, int camera_w, int camera_h, const char *status, int y,
@@ -529,8 +539,6 @@ void ui_xpub(ui_screen_t *s, const char *xpub, uint32_t fp, int testnet, unsigne
         snprintf(line, sizeof(line), "%.*s", (int)UI_COLS, xpub + i);
         put(&w, C_OURS, line);
     }
-    w.row = UI_ROWS - 1;
-    put(&w, C_HINT, "PUSH: show QR");
 }
 
 /* The hash of the loaded wasm, grouped in eights because it is compared by eye with the browser's */
@@ -551,7 +559,6 @@ void ui_hash(ui_screen_t *s, const char *name, unsigned int len, const uint8_t h
         put(&w, C_OURS, line);
     }
     put(&w, C_TEXT, "");
-    put_wrapped(&w, C_HINT, "Must match the viewer page");
-    w.row = UI_ROWS - 1;
-    put(&w, C_HINT, "PUSH: ok");
+    put(&w, C_HINT, "GitHub Release (firmware tag)");
+    put(&w, C_HINT, "SHA256SUMS: parser.wasm entry");
 }

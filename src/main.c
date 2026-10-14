@@ -1,8 +1,5 @@
-/* The device application. The menu runs one signing round: read a PSBT, show every review screen,
- * and on approval sign it and hand the result back as an animated QR, then return to the menu.
- * The seed lives in RAM only while the power is on, and Lock clears it. Nothing is ever written to
- * flash. A TEST_SEED=1 build can load BIP39's test vector, and shows a warning screen for it; such a
- * build must never hold funds */
+/* The device reviews and signs one PSBT at a time, then returns it as an animated QR.
+ * Seed stays in RAM; Clear seed wipes it. TEST_SEED=1 offers a public vector and must never hold funds. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -260,12 +257,17 @@ static void sign_flow(const uint8_t *in, uint32_t in_len) {
         int key = buttons_poll();
         if (key >= 0) {
             unsigned int before = review_ui.cur;
+            unsigned int selection = review_ui.screens[review_ui.cur].selection;
             decision = ui_review_key(&review_ui, key);
-            if (review_ui.cur != before) show(&review_ui.screens[review_ui.cur]);
+            if (review_ui.cur != before || review_ui.screens[review_ui.cur].selection != selection)
+                show(&review_ui.screens[review_ui.cur]);
         }
         sleep_ms(10);
     }
-    if (decision == UI_REJECTED) return sign_buffers_give(), message("Canceled", NULL, 0);
+    if (decision == UI_REJECTED) {
+        sign_buffers_give();
+        return;
+    }
 
     t = time_us_64();
     if (!parser_host_nonces(nonces)) return sign_buffers_give(), message("Finalize failed", NULL, 1);
@@ -371,7 +373,7 @@ static int load_test_seed(void) {
 #endif
 
 static void seed_menu(void) {
-    static const char *const items[] = {"Scan SeedQR", "Use test seed"};
+    static const char *const items[] = {"Scan SeedQR", "Use test seed (test only)"};
     int sel;
 
     ui_menu_init(&menu, "No seed loaded", items, TEST_SEED ? 2 : 1);
@@ -434,28 +436,67 @@ static void show_parser_hash(void) {
     wait_key();
 }
 
+static void watch_only_menu(void) {
+    static const char *const items[] = {"Single-sig (BIP84)", "Multisig (P2WSH)", "Back to main menu"};
+    static ui_menu_t submenu;
+
+    ui_menu_init(&submenu, "Watch-only wallet", items, 3);
+    show(&submenu.screen);
+    for (;;) {
+        int sel = ui_menu_key(&submenu, wait_key());
+        if (sel == UI_MENU_PENDING) {
+            show(&submenu.screen);
+            continue;
+        }
+        if (sel == UI_MENU_BACK || sel == 2) return;
+        if (sel == 0) show_xpub(84);
+        if (sel == 1) show_xpub(48);
+        show(&submenu.screen);
+    }
+}
+
+static int confirm_clear_seed(void) {
+    static const char *const items[] = {"Keep seed", "Clear seed"};
+    static ui_menu_t confirm;
+
+    ui_menu_init(&confirm, "Clear seed?", items, 2);
+    show(&confirm.screen);
+    for (;;) {
+        int sel = ui_menu_key(&confirm, wait_key());
+        if (sel == UI_MENU_PENDING) {
+            show(&confirm.screen);
+            continue;
+        }
+        return sel == 1;
+    }
+}
+
 static void main_menu(void) {
-    static const char *const items[] = {"Scan PSBT",   "Show xpub",      "Show multisig xpub",
-                                        "Parser hash", "Sign test PSBT", "Lock (wipe seed)"};
-    static const char *const items_notest[] = {"Scan PSBT", "Show xpub", "Show multisig xpub", "Parser hash",
-                                               "Lock (wipe seed)"};
+    static const char *const items[] = {
+        "Scan PSBT",
+        "Set up watch-only wallet",
+        "Verify PSBT parser",
+#if TEST_SEED
+        "Sign demo PSBT (test only)",
+#endif
+        "Clear seed",
+    };
     static char title[UI_COLS + 1];
 
-    snprintf(title, sizeof(title), "%s fp %08x", TESTNET ? "Signet" : "Signer", (unsigned int)core_fingerprint());
-    ui_menu_init(&menu, title, TEST_SEED ? items : items_notest, TEST_SEED ? 6 : 5);
+    snprintf(title, sizeof(title), "FP %08x", (unsigned int)core_fingerprint());
+    ui_menu_init(&menu, title, items, sizeof(items) / sizeof(items[0]));
     show(&menu.screen);
     for (;;) {
         int sel = ui_menu_key(&menu, wait_key());
         if (sel == 0) scan_and_sign();
-        if (sel == 1) show_xpub(84);
-        if (sel == 2) show_xpub(48);
-        if (sel == 3) show_parser_hash();
+        if (sel == 1) watch_only_menu();
+        if (sel == 2) show_parser_hash();
 #if TEST_SEED
-        if (sel == 4) sign_flow(test_psbt, sizeof(test_psbt));
+        if (sel == 3) sign_flow(test_psbt, sizeof(test_psbt));
 #endif
-        if (sel == (TEST_SEED ? 5 : 4)) {
+        if (sel == (TEST_SEED ? 4 : 3) && confirm_clear_seed()) {
             core_unload();
-            printf("locked (seed wiped)\n");
+            printf("seed cleared (key wiped)\n");
             return;
         }
         show(&menu.screen);
