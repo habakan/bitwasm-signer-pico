@@ -81,13 +81,16 @@ input,textarea { display:block; width:100%; border:1px solid var(--line); border
 #seed-result { width:min(100%, 440px); }
 .seed-qr-panel h3 { margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid #d8cfb7; font-size:13px; font-weight:700; letter-spacing:.02em; }
 .seed-qr-panel .hint { color:#6d6759; }
-.demo-seedqr-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.demo-seedqr-options { display:grid; gap:10px; }
+.demo-seedqr-wallets { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.demo-seedqr-display { padding:10px; border:1px solid #d8cfb7; border-radius:8px; background:#fbf7e9; text-align:center; }
+.demo-seedqr-display strong { display:block; font-size:12px; }
 .seedqr-choice { display:flex; min-width:0; flex-direction:column; align-items:center; gap:4px; padding:9px; border:2px solid #d8cfb7; border-radius:8px; background:#fbf7e9; color:#39362f; text-align:center; }
 .seedqr-choice[aria-pressed="true"] { border-color:#347448; box-shadow:0 0 0 2px #34744830; }
 .seedqr-choice .seedqr-name { font-size:12px; }
 .seedqr-choice .seedqr-balance { font:700 12px ui-monospace,monospace; }
 .seedqr-choice small { color:#6d6759; font-size:10px; line-height:1.35; }
-.seedqr-choice canvas { width:min(100%, 180px); height:auto; display:block; background:#fff; image-rendering:pixelated; }
+#seed-qr { width:min(100%, 220px); height:auto; display:block; margin:8px auto 0; background:#fff; image-rendering:pixelated; }
 .seedqr-note { max-width:420px; margin:8px 0 0; font-size:11px; }
 .seedqr-settings { margin-top:10px; }
 .seedqr-settings summary { cursor:pointer; font-weight:650; }
@@ -100,7 +103,7 @@ button:disabled { opacity:.45; cursor:default; }
 #status { min-height:48px; white-space:pre-wrap; overflow-wrap:anywhere; }
 #qr { width:min(100%, 220px); height:auto; display:block; margin:8px auto; background:#fff; image-rendering:pixelated; }
 #qr { width:min(100%, 160px); margin:4px auto; }
-#demo-seedqr-options[hidden], #custom-seed-qr[hidden] { display:none; }
+#demo-seedqr-options[hidden], #seed-qr[hidden], #custom-seed-qr[hidden] { display:none; }
 #custom-seed-qr { width:min(100%, 220px); height:auto; display:block; margin:8px auto; background:#fff; image-rendering:pixelated; }
 .seed-qr-panel #custom-seed-qr { border:1px solid #d1c5a6; box-shadow:0 3px 8px #4a402c24; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
@@ -151,18 +154,22 @@ button:disabled { opacity:.45; cursor:default; }
     <h3 id="seedqr-title">公開テストウォレットを選択</h3>
     <p class="hint" id="seedqr-hint">送金元にするウォレットを選び、Signerで対応するSeedQRを読み取ってください。</p>
     <div class="demo-seedqr-options" id="demo-seedqr-options">
-      <button class="seedqr-choice" id="demo-wallet-0" type="button" data-demo-wallet="0" aria-pressed="true">
-        <span class="seedqr-name">テストウォレット A</span>
-        <canvas id="seed-qr-a" width="480" height="480" aria-label="テストウォレット A のSeedQR"></canvas>
-        <span class="seedqr-balance" id="demo-balance-0">— BTC</span>
-        <small><span id="demo-utxo-count-0">残高を照会しています…</span><br>最大単一UTXO: <span id="demo-max-utxo-0">— BTC</span></small>
-      </button>
-      <button class="seedqr-choice" id="demo-wallet-1" type="button" data-demo-wallet="1" aria-pressed="false">
-        <span class="seedqr-name">テストウォレット B</span>
-        <canvas id="seed-qr-b" width="480" height="480" aria-label="テストウォレット B のSeedQR"></canvas>
-        <span class="seedqr-balance" id="demo-balance-1">— BTC</span>
-        <small><span id="demo-utxo-count-1">残高を照会しています…</span><br>最大単一UTXO: <span id="demo-max-utxo-1">— BTC</span></small>
-      </button>
+      <div class="demo-seedqr-display">
+        <strong id="selected-seedqr-name">テストウォレット A のSeedQR</strong>
+        <canvas id="seed-qr" width="480" height="480" aria-label="テストウォレット A のSeedQR"></canvas>
+      </div>
+      <div class="demo-seedqr-wallets">
+        <button class="seedqr-choice" id="demo-wallet-0" type="button" data-demo-wallet="0" aria-pressed="true">
+          <span class="seedqr-name">テストウォレット A</span>
+          <span class="seedqr-balance" id="demo-balance-0">— BTC</span>
+          <small><span id="demo-utxo-count-0">残高を照会しています…</span><br>最大単一UTXO: <span id="demo-max-utxo-0">— BTC</span></small>
+        </button>
+        <button class="seedqr-choice" id="demo-wallet-1" type="button" data-demo-wallet="1" aria-pressed="false">
+          <span class="seedqr-name">テストウォレット B</span>
+          <span class="seedqr-balance" id="demo-balance-1">— BTC</span>
+          <small><span id="demo-utxo-count-1">残高を照会しています…</span><br>最大単一UTXO: <span id="demo-max-utxo-1">— BTC</span></small>
+        </button>
+      </div>
     </div>
     <p class="hint seedqr-note" id="seedqr-note">残高の多い側を初期選択します。ウォレットを切り替えるとページを再読み込みします。送金後は承認を待ってから切り替えてください。</p>
     <img id="custom-seed-qr" alt="選択したSeedQR画像" hidden>
@@ -292,8 +299,8 @@ const API = "https://mempool.space/signet/api";
 const PARSER_SHA256 = "b23c0dd04ef37582504b16ade472de62aa4e4038ffb142a79004ec98208bb88b";
 const MAX_INDEX = 999;
 const DEMO_WALLETS = [
-  { name: "テストウォレット A", address: "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", seedqr: "0000".repeat(11) + "0003", canvasId: "seed-qr-a", balance: null, utxoCount: null, largestUtxo: 0 },
-  { name: "テストウォレット B", address: "tb1qjgx204hxfwuse548jc34fjzg6ffq8pvrqwlex4", seedqr: "101920151790203919831533203119191019201517902040", canvasId: "seed-qr-b", balance: null, utxoCount: null, largestUtxo: 0 },
+  { name: "テストウォレット A", address: "tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl", seedqr: "0000".repeat(11) + "0003", balance: null, utxoCount: null, largestUtxo: 0 },
+  { name: "テストウォレット B", address: "tb1qjgx204hxfwuse548jc34fjzg6ffq8pvrqwlex4", seedqr: "101920151790203919831533203119191019201517902040", balance: null, utxoCount: null, largestUtxo: 0 },
 ];
 let selectedDemoWalletIndex = 0, demoSelectionTouched = false;
 try {
@@ -309,7 +316,8 @@ const form = document.getElementById("form");
 const result = document.getElementById("result");
 const canvas = document.getElementById("qr");
 const demoSeedOptions = document.getElementById("demo-seedqr-options");
-const demoSeedCanvases = DEMO_WALLETS.map(({ canvasId }) => document.getElementById(canvasId));
+const seedCanvas = document.getElementById("seed-qr");
+const selectedSeedQrName = document.getElementById("selected-seedqr-name");
 const demoWalletButtons = [...document.querySelectorAll("[data-demo-wallet]")];
 const demoWalletBalances = DEMO_WALLETS.map((_, i) => document.getElementById(`demo-balance-${i}`));
 const demoWalletUtxoCounts = DEMO_WALLETS.map((_, i) => document.getElementById(`demo-utxo-count-${i}`));
@@ -377,7 +385,7 @@ let confirmedUtxoCount = null, fundingLookupFailed = false, sourceChecking = fal
 let walletOffset = { x: 0, y: 0 }, walletDrag = null;
 let hwwOffset = { x: 0, y: 0 }, hwwDrag = null;
 let walletScanActive = false, hwwCameraScanning = false, receiveScanTimer = null, qrDetector = null;
-let seedMode = "demo", customSeedUrl = null, cameraQrId = DEMO_WALLETS[selectedDemoWalletIndex].canvasId;
+let seedMode = "demo", customSeedUrl = null, cameraQrId = "seed-qr";
 let demoWalletsReady = false, pendingWalletDescriptor = null;
 let amountEdited = false;
 const translationPairs = [
@@ -395,6 +403,8 @@ const translationPairs = [
   ["送金元にするウォレットを選び、Signerで対応するSeedQRを読み取ってください。", "Choose the source wallet, then scan its SeedQR on the signer."],
   ["テストウォレット A", "Test wallet A"],
   ["テストウォレット B", "Test wallet B"],
+  ["テストウォレット A のSeedQR", "Test wallet A SeedQR"],
+  ["テストウォレット B のSeedQR", "Test wallet B SeedQR"],
   ["最大単一UTXO:", "Largest single UTXO:"],
   ["残高を照会しています…", "Looking up balance…"],
   ["残高の多い側を初期選択します。ウォレットを切り替えるとページを再読み込みします。送金後は承認を待ってから切り替えてください。", "The wallet with the larger confirmed balance is selected first. Switching wallets reloads the page. After sending, wait for confirmation before switching."],
@@ -992,7 +1002,11 @@ function selectDemoWallet(index, { automatic = false } = {}) {
   sourceInput.value = selected.address;
   destinationInput.value = DEMO_WALLETS[1 - index].address;
   demoWalletButtons.forEach((button, i) => button.setAttribute("aria-pressed", String(i === index)));
-  setSeedCameraTarget(selected.canvasId);
+  const seedQrLabel = translateUiText(`${selected.name} のSeedQR`, pageLanguage);
+  selectedSeedQrName.textContent = seedQrLabel;
+  seedCanvas.setAttribute("aria-label", seedQrLabel);
+  paintQr(selected.seedqr, seedCanvas);
+  setSeedCameraTarget("seed-qr");
   setSuggestedDemoAmount();
   if (demoWalletsReady) {
     walletBalance.textContent = selected.balance === null ? "— BTC" : `${formatBtc(selected.balance)} BTC`;
@@ -1061,9 +1075,11 @@ function useDemoSeed() {
   seedQrHint.textContent = translateUiText("送金元にするウォレットを選び、Signerで対応するSeedQRを読み取ってください。", pageLanguage);
   seedQrStatus.textContent = translateUiText("どちらも公開テストシードです。価値のあるコインには使用しないでください。", pageLanguage);
   seedSettingsStatus.textContent = translateUiText("公開デモSeedQRを使用中です。", pageLanguage);
+  seedCanvas.hidden = false;
   walletBalance.textContent = "— BTC";
   walletBalanceHint.textContent = translateUiText("Signet残高を照会しています…", pageLanguage);
-  setSeedCameraTarget(selectedDemoWallet().canvasId);
+  setSeedCameraTarget("seed-qr");
+  paintQr(selectedDemoWallet().seedqr, seedCanvas);
   setSuggestedDemoAmount();
   void checkFunding(selectedDemoWallet().address);
   renderOnboarding();
@@ -1719,7 +1735,6 @@ async function loadSourceAddress() {
 
 try {
   support = await createSendSupport();
-  DEMO_WALLETS.forEach((demoWallet, index) => paintQr(demoWallet.seedqr, demoSeedCanvases[index]));
   demoWalletButtons.forEach((button, index) => button.addEventListener("click", () => selectDemoWallet(index)));
   amountInput.addEventListener("input", () => { amountEdited = true; });
   feeRateInput.addEventListener("input", setSuggestedDemoAmount);
@@ -1762,7 +1777,7 @@ try {
     const module = signerModule();
     if (module?.ready) {
       clearInterval(readyTimer);
-      cameraQrId = seedMode === "custom" ? "custom-seed-qr" : selectedDemoWallet().canvasId;
+      cameraQrId = seedMode === "custom" ? "custom-seed-qr" : "seed-qr";
       module.cameraQrId = cameraQrId;
       module.onHwwDragStart = beginHwwDrag;
       module.onHwwDragMove = moveHwwDrag;
