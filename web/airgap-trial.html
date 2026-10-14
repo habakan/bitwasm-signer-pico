@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>仮想AirGap取引 | bitwasm-signer-pico</title>
 <style>
-:root { color-scheme: light dark; --bg:#f4f2ee; --fg:#1d1c1a; --muted:#6b6760; --panel:#fff; --line:#d9d5cd; --accent:#3d3b38; --accent-fg:#f4f2ee; --warn:#fdecc8; --desk-light:#b68a61; --desk:#8a6244; --desk-grain:rgba(255,240,218,.09); --desk-seam:rgba(54,31,16,.18); }
-@media (prefers-color-scheme: dark) { :root { --bg:#161514; --fg:#ece9e3; --muted:#9c978e; --panel:#201f1d; --line:#34322f; --accent:#3a3835; --accent-fg:#f4f2ee; --warn:#3b2c0c; --desk-light:#68503b; --desk:#382a20; --desk-grain:rgba(255,224,179,.07); --desk-seam:rgba(0,0,0,.28); } }
+:root { color-scheme: light dark; --bg:#f4f2ee; --fg:#1d1c1a; --muted:#6b6760; --panel:#fff; --line:#d9d5cd; --accent:#3d3b38; --accent-fg:#f4f2ee; --warn:#fdecc8; --mat:#41664a; --mat-fine:rgba(220,244,214,.10); --mat-major:rgba(220,244,214,.25); --mat-edge:rgba(229,245,221,.50); --mat-rim:rgba(229,245,221,.08); }
+@media (prefers-color-scheme: dark) { :root { --bg:#161514; --fg:#ece9e3; --muted:#9c978e; --panel:#201f1d; --line:#34322f; --accent:#3a3835; --accent-fg:#f4f2ee; --warn:#3b2c0c; --mat:#304f39; --mat-fine:rgba(220,244,214,.08); --mat-major:rgba(220,244,214,.20); --mat-edge:rgba(229,245,221,.35); --mat-rim:rgba(229,245,221,.05); } }
 * { box-sizing:border-box; }
-body { margin:0; background-color:var(--desk); background-image:repeating-linear-gradient(1deg,transparent 0 16px,var(--desk-grain) 17px 18px,transparent 19px 43px),repeating-linear-gradient(90deg,transparent 0 338px,var(--desk-seam) 339px 341px,var(--desk-grain) 342px,transparent 343px 680px),linear-gradient(150deg,var(--desk-light),var(--desk)); background-attachment:fixed; color:var(--fg); font:15px/1.5 system-ui,sans-serif; }
-main { max-width:1540px; margin:auto; padding:24px 16px 48px; }
+body { margin:0; background:#202c23; color:var(--fg); font:15px/1.5 system-ui,sans-serif; }
+main { width:calc(100% - 16px); max-width:1540px; margin:8px auto 12px; padding:24px 16px 48px; border:1px solid var(--mat-edge); border-radius:14px; background-color:var(--mat); background-image:linear-gradient(var(--mat-major) 1px,transparent 1px),linear-gradient(90deg,var(--mat-major) 1px,transparent 1px),linear-gradient(var(--mat-fine) 1px,transparent 1px),linear-gradient(90deg,var(--mat-fine) 1px,transparent 1px),linear-gradient(145deg,rgba(255,255,255,.06),transparent 60%); background-size:100px 100px,100px 100px,20px 20px,20px 20px,auto; box-shadow:0 12px 30px #10181066,inset 0 0 0 5px var(--mat-rim); }
 h1 { font-size:25px; margin:0 0 6px; }
 .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; }
 .language-switch { display:flex; flex:none; gap:4px; padding:4px; border:1px solid var(--line); border-radius:9px; background:var(--panel); }
@@ -123,6 +123,7 @@ button:disabled { opacity:.45; cursor:default; }
 @media (max-width:1240px) { .experience-layout { grid-template-columns:minmax(0,1fr); } .onboarding { position:static; grid-column:1; grid-row:1; width:auto; max-height:none; overflow:visible; } .flow { grid-column:1; grid-row:2; } .onboarding-header { flex-direction:row; align-items:center; } .onboarding-steps { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 @media (max-width:1080px) { .flow { grid-template-columns:1fr; } .wallet-laptop { width:min(100%,860px); margin:auto; } }
 @media (max-width:520px) { .wallet-app { height:540px; } .titlebar { gap:6px; padding:0 8px; } .titlebar > span:nth-child(2) { font-size:11px; } .network-badge { padding:3px 6px; font-size:10px; } .wallet-main { padding:9px; } .wallet-exchange-layout { grid-template-columns:minmax(0,1fr) minmax(110px,.8fr); gap:6px; } .wallet-screen .wallet-qr-panel { padding:6px; } #signed-details { font-size:10px; } }
+@media (max-width:520px) { main { width:calc(100% - 12px); margin:6px auto 8px; padding:18px 10px 36px; } }
 @media (max-width:620px) { .page-heading { align-items:flex-start; flex-direction:column-reverse; gap:8px; } .language-switch { align-self:flex-end; } }
 @media (max-width:620px) { .onboarding { padding:12px; } .onboarding-header { align-items:flex-start; flex-direction:column; } .onboarding-steps { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; } .onboarding-step { padding:7px; } }
 </style>
