@@ -21,6 +21,7 @@ WEB_TEST_PSBT_H := build/test_psbt.h
 endif
 
 WEB_EXTRA_TARGET += $(WEB_BUILD_DIR)/html2canvas.min.js $(WEB_BUILD_DIR)/html2canvas-LICENSE.txt
+PARSER_SHA256 := $(shell awk '$$2 == "build/parser.wasm" { print $$1 }' checksums.txt)
 
 .PHONY: FORCE_WEB_CONFIG
 FORCE_WEB_CONFIG:
@@ -42,8 +43,8 @@ $(WEB_BUILD_DIR)/signer.html: FORCE_WEB_CONFIG build/parser_wasm.h build/font8x1
 	  -DTEST_PSBT_H_DIR=$(WEB_TEST_PSBT_H_DIR) -DCORE_SRC="$(strip $(CORE_SRC))" >/dev/null
 	ninja -C $(WEB_BUILD_DIR)
 
-build/web-signet/airgap-trial.html: build/web-signet/signer.html web/airgap-trial.html components/parts/parser/hosts/js/parser.mjs build/parser.wasm
-	cp web/airgap-trial.html $@
+build/web-signet/airgap-trial.html: build/web-signet/signer.html web/airgap-trial.html components/parts/parser/hosts/js/parser.mjs build/parser.wasm checksums.txt
+	sed 's/^const PARSER_SHA256 = ".*";/const PARSER_SHA256 = "$(PARSER_SHA256)";/' web/airgap-trial.html > $@
 	cp components/parts/parser/hosts/js/parser.mjs build/web-signet/parser.mjs
 	cp build/parser.wasm build/web-signet/parser.wasm
 
