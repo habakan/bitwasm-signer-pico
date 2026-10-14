@@ -90,6 +90,7 @@ input,textarea { display:block; width:100%; border:1px solid var(--line); border
 .seedqr-choice .seedqr-name { font-size:12px; }
 .seedqr-choice .seedqr-balance { font:700 12px ui-monospace,monospace; }
 .seedqr-choice small { color:#6d6759; font-size:10px; line-height:1.35; }
+.seedqr-choice .seedqr-address { color:#5d584b; font:600 12px/1.4 ui-monospace,monospace; overflow-wrap:anywhere; user-select:all; }
 #seed-qr { width:min(100%, 220px); height:auto; display:block; margin:8px auto 0; background:#fff; image-rendering:pixelated; }
 .seedqr-note { max-width:420px; margin:8px 0 0; font-size:11px; }
 .seedqr-settings { margin-top:10px; }
@@ -163,11 +164,13 @@ button:disabled { opacity:.45; cursor:default; }
           <span class="seedqr-name">テストウォレット A</span>
           <span class="seedqr-balance" id="demo-balance-0">— BTC</span>
           <small><span id="demo-utxo-count-0">残高を照会しています…</span><br>最大単一UTXO: <span id="demo-max-utxo-0">— BTC</span></small>
+          <small class="seedqr-address"><span>アドレス:</span><br><code>tb1q6rz28mcfaxtmd6v789l9rrlrusdprr9pqcpvkl</code></small>
         </button>
         <button class="seedqr-choice" id="demo-wallet-1" type="button" data-demo-wallet="1" aria-pressed="false">
           <span class="seedqr-name">テストウォレット B</span>
           <span class="seedqr-balance" id="demo-balance-1">— BTC</span>
           <small><span id="demo-utxo-count-1">残高を照会しています…</span><br>最大単一UTXO: <span id="demo-max-utxo-1">— BTC</span></small>
+          <small class="seedqr-address"><span>アドレス:</span><br><code>tb1qjgx204hxfwuse548jc34fjzg6ffq8pvrqwlex4</code></small>
         </button>
       </div>
     </div>
@@ -405,6 +408,7 @@ const translationPairs = [
   ["テストウォレット B", "Test wallet B"],
   ["テストウォレット A のSeedQR", "Test wallet A SeedQR"],
   ["テストウォレット B のSeedQR", "Test wallet B SeedQR"],
+  ["アドレス:", "Address:"],
   ["最大単一UTXO:", "Largest single UTXO:"],
   ["残高を照会しています…", "Looking up balance…"],
   ["残高の多い側を初期選択します。ウォレットを切り替えるとページを再読み込みします。送金後は承認を待ってから切り替えてください。", "The wallet with the larger confirmed balance is selected first. Switching wallets reloads the page. After sending, wait for confirmation before switching."],
