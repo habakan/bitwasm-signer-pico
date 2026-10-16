@@ -35,7 +35,7 @@ signet で署名から送信まで一巡しました。ここに載せた数値�
 
 ## ブラウザデモ
 
-[公開デモページ](https://habakan.github.io/bitwasm-signer-pico/)から試せます。テストシードを使うデモなので、本物の SeedQR を読み込ませず、実資金を扱わないでください。操作方法と実装の説明は [web/README.md](../../web/README.md)（英語）をご覧ください。
+[公開デモページ](https://habakan.github.io/bitwasm-signer-pico/)から試せます。公開テスト用のデモで、ニーモニックとパスフレーズの手入力はできません。実シードや実資金を使わないでください。操作方法と実装の説明は [web/README.md](../../web/README.md)（英語）をご覧ください。
 
 [![ブラウザ上のファームウェアメニュー、操作パッド、テストシードの注意書きを表示したデモ画面](../web-demo.png)](https://habakan.github.io/bitwasm-signer-pico/)
 
@@ -45,6 +45,7 @@ signet で署名から送信まで一巡しました。ここに載せた数値�
 署名済み PSBT を QR で返します。PC 側に鍵やシードフレーズを置かず、
 [signet の取引](https://mempool.space/signet/tx/de849e8c01a39fcf2aa84aaeeccb2ac8aea128086b2f4252539bcab90a0a432f)
 を送信しました（手順は [検証手順](../verification.md#signet-transaction)をご覧ください）。
+SeedQR に加え、英語の BIP39 ニーモニックを方向キーで入力できます。パスフレーズは印字可能な ASCII 文字に対応します。
 
 | 段 | 実測 | |
 |---|---|---|

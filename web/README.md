@@ -23,7 +23,7 @@ The output is `build/web/signer.html`. Serve it from localhost or HTTPS when tes
 
 ## Safety
 
-The demo is built with `TEST_SEED=1` and uses a known test seed. It is not a signing device and does not provide hardware isolation. Never scan a real SeedQR or use real funds with it.
+The demo is built with `TEST_SEED=1` and is intended for public test seeds. Manual mnemonic/passphrase entry is disabled in the browser build. It is not a signing device and does not provide hardware isolation; never scan a real SeedQR or use real funds with it.
 
 ## Source files
 

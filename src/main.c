@@ -8,7 +8,6 @@
 #include "core.h"
 #include "parser_host.h"
 #include "sha256.h"
-#include "sha512.h"
 #include "wipe.h"
 #include "ui.h"
 #include "st7789.h"
@@ -296,28 +295,291 @@ static void scan_and_sign(void) {
     free(psbt), psbt = NULL;
 }
 
+#if !defined(__EMSCRIPTEN__)
+static void seed_input_line(ui_screen_t *s, unsigned int row, const char *text) {
+    size_t len = strnlen(text, UI_COLS);
+    memcpy(s->text[row], text, len);
+    s->text[row][len] = 0;
+}
+
+static void keyboard_row(char out[UI_COLS + 1], const char *keys, unsigned int selected) {
+    size_t at = 0;
+    for (unsigned int i = 0; keys[i]; i++) {
+        if (i) out[at++] = ' ';
+        if (i == selected) out[at++] = '[';
+        out[at++] = keys[i];
+        if (i == selected) out[at++] = ']';
+    }
+    out[at] = 0;
+}
+
+static void word_input_screen(ui_screen_t *s, unsigned int word, unsigned int total, const char *prefix, size_t len,
+                              char matches[3][BIP39_WORD_MAX + 1], size_t count, int exact, int row, int col) {
+    static const char *const keys[] = {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
+    static const unsigned int key_count[] = {10, 9, 7};
+    char line[UI_COLS + 1];
+
+    memset(s, 0, sizeof(*s));
+    snprintf(s->text[1], sizeof(s->text[1]), "Word %u/%u", word + 1, total);
+    snprintf(line, sizeof(line), "Prefix: %.*s", (int)len, prefix);
+    seed_input_line(s, 2, line);
+    if (!len) seed_input_line(s, 3, "Type a few letters");
+    else if (!count) seed_input_line(s, 3, "No matching BIP39 word");
+    else if (exact) {
+        snprintf(line, sizeof(line), "Exact: %.*s", (int)len, prefix);
+        seed_input_line(s, 3, line);
+    } else if (count == 1) {
+        snprintf(line, sizeof(line), "Match: %.8s", matches[0]);
+        seed_input_line(s, 3, line);
+    } else {
+        snprintf(line, sizeof(line), "Matches: %.8s %.8s%s", matches[0], matches[1], count > 2 ? " +" : "");
+        seed_input_line(s, 3, line);
+    }
+    for (unsigned int r = 0; r < 3; r++) {
+        keyboard_row(line, keys[r], row == (int)r ? (unsigned int)col : key_count[r]);
+        seed_input_line(s, 4 + r, line);
+    }
+    seed_input_line(s, 8, "Arrows move, Select types");
+    seed_input_line(s, 9, "A: erase  B: select  C: cancel");
+}
+
+static int enter_word(char *out, unsigned int word, unsigned int total) {
+    static const char *const keys[] = {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
+    static const unsigned int key_count[] = {10, 9, 7};
+    char prefix[BIP39_WORD_MAX + 1] = {0}, matches[3][BIP39_WORD_MAX + 1] = {{0}};
+    ui_screen_t screen;
+    int row = 0, col = 0;
+
+    for (;;) {
+        size_t len = strlen(prefix);
+        int exact = 0;
+        size_t count = len ? bip39_word_prefix((const uint8_t *)prefix, len, matches, 3, &exact) : 0;
+        word_input_screen(&screen, word, total, prefix, len, matches, count, exact, row, col);
+        show(&screen);
+        wipe(&screen, sizeof(screen));
+        int key = wait_key();
+        if (key == UI_KEY_C) {
+            wipe(prefix, sizeof(prefix));
+            wipe(matches, sizeof(matches));
+            return 0;
+        }
+        if (key == UI_KEY_A) {
+            if (len) prefix[len - 1] = 0;
+        } else if (key == UI_KEY_B) {
+            if (exact || count == 1) {
+                strncpy(out, exact ? prefix : matches[0], BIP39_WORD_MAX);
+                out[BIP39_WORD_MAX] = 0;
+                wipe(prefix, sizeof(prefix));
+                wipe(matches, sizeof(matches));
+                return 1;
+            }
+        } else if (key == UI_KEY_LEFT && col > 0) {
+            col--;
+        } else if (key == UI_KEY_RIGHT && col + 1 < (int)key_count[row]) {
+            col++;
+        } else if (key == UI_KEY_UP && row > 0) {
+            row--;
+            if (col >= (int)key_count[row]) col = (int)key_count[row] - 1;
+        } else if (key == UI_KEY_DOWN && row < 2) {
+            row++;
+            if (col >= (int)key_count[row]) col = (int)key_count[row] - 1;
+        } else if (key == UI_KEY_SELECT && len < BIP39_WORD_MAX) {
+            prefix[len] = keys[row][col];
+            prefix[len + 1] = 0;
+        }
+    }
+}
+
+static int enter_mnemonic(char *mn, size_t cap) {
+    static const unsigned int counts[] = {12, 15, 18, 21, 24};
+    static const char *const options[] = {"12 words", "15 words", "18 words", "21 words", "24 words"};
+    unsigned int words = 0;
+
+    ui_menu_init(&menu, "Word count", options, sizeof(options) / sizeof(options[0]));
+    show(&menu.screen);
+    for (;;) {
+        int sel = ui_menu_key(&menu, wait_key());
+        if (sel == UI_MENU_BACK) return 0;
+        if (sel == UI_MENU_PENDING) {
+            show(&menu.screen);
+            continue;
+        }
+        words = counts[sel];
+        break;
+    }
+    size_t used = 0;
+    mn[0] = 0;
+    for (unsigned int i = 0; i < words; i++) {
+        char word[BIP39_WORD_MAX + 1] = {0};
+        if (!enter_word(word, i, words)) {
+            wipe(word, sizeof(word));
+            wipe(mn, cap);
+            return 0;
+        }
+        if (used + strlen(word) + (i ? 1 : 0) + 1 > cap) {
+            wipe(word, sizeof(word));
+            wipe(mn, cap);
+            return 0;
+        }
+        if (i) mn[used++] = ' ';
+        size_t len = strlen(word);
+        memcpy(mn + used, word, len);
+        used += len;
+        mn[used] = 0;
+        wipe(word, sizeof(word));
+    }
+    if (!bip39_mnemonic_ok((const uint8_t *)mn, used)) {
+        message("Bad checksum", "Restart mnemonic entry.", 1);
+        wipe(mn, cap);
+        return 0;
+    }
+    return 1;
+}
+
+static unsigned int passphrase_row_count(int layer, int row) {
+    static const unsigned int counts[3][4] = {{10, 9, 7, 9}, {10, 9, 7, 9}, {10, 10, 10, 12}};
+    if (row < (layer == 2 ? 4 : 3)) return counts[layer][row];
+    return layer == 2 ? 2 : 3;
+}
+
+static unsigned int passphrase_char_rows(int layer) {
+    return layer == 2 ? 4 : 3;
+}
+
+static void passphrase_input_screen(ui_screen_t *s, const char *pass, size_t len, int layer, int row, int col) {
+    static const char *const layer_names[] = {"lower", "upper", "digits/symbols"};
+    static const char *const keys[3][4] = {{"qwertyuiop", "asdfghjkl", "zxcvbnm", NULL},
+                                           {"QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM", NULL},
+                                           {"0123456789", "!\"#$%&'()*", "+,-./:;<=>", "?@[\\]^_`{|}~"}};
+    char line[UI_COLS + 1];
+    size_t start = len > 20 ? len - 20 : 0;
+
+    memset(s, 0, sizeof(*s));
+    snprintf(s->text[1], sizeof(s->text[1]), "Passphrase %u/%u", (unsigned int)len, BIP39_PASSPHRASE_MAX);
+    if (start) snprintf(line, sizeof(line), "Text:[...%.*s]", 20, pass + start);
+    else snprintf(line, sizeof(line), "Text:[%.*s]", (int)(len - start), pass);
+    seed_input_line(s, 2, line);
+    snprintf(line, sizeof(line), "Layer: %s", layer_names[layer]);
+    seed_input_line(s, 3, line);
+    unsigned int char_rows = passphrase_char_rows(layer);
+    for (unsigned int r = 0; r < char_rows; r++) {
+        keyboard_row(line, keys[layer][r], row == (int)r ? (unsigned int)col : passphrase_row_count(layer, r));
+        seed_input_line(s, 4 + r, line);
+    }
+    unsigned int special_row = char_rows;
+    if (row == (int)special_row && layer < 2) {
+        snprintf(line, sizeof(line), "%s %s %s", col == 0 ? "[Shift]" : "Shift", col == 1 ? "[Space]" : "Space",
+                 col == 2 ? "[Symbols]" : "Symbols");
+    } else if (row == (int)special_row) {
+        snprintf(line, sizeof(line), "%s %s", col == 0 ? "[Letters]" : "Letters", col == 1 ? "[Space]" : "Space");
+    } else if (layer < 2) {
+        snprintf(line, sizeof(line), "Shift       Space    Symbols");
+    } else {
+        snprintf(line, sizeof(line), "Letters               Space");
+    }
+    seed_input_line(s, 4 + char_rows, line);
+    seed_input_line(s, 9, "Arrows move, Select types");
+    seed_input_line(s, 10, "A: cancel  B: erase  C: done");
+}
+
+static int enter_passphrase(char pass[BIP39_PASSPHRASE_MAX + 1]) {
+    static const char *const keys[3][4] = {{"qwertyuiop", "asdfghjkl", "zxcvbnm", NULL},
+                                           {"QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM", NULL},
+                                           {"0123456789", "!\"#$%&'()*", "+,-./:;<=>", "?@[\\]^_`{|}~"}};
+    ui_screen_t screen;
+    size_t len = 0;
+    int layer = 0, row = 0, col = 0;
+    memset(pass, 0, BIP39_PASSPHRASE_MAX + 1);
+
+    for (;;) {
+        passphrase_input_screen(&screen, pass, len, layer, row, col);
+        show(&screen);
+        wipe(&screen, sizeof(screen));
+        int key = wait_key();
+        if (key == UI_KEY_A) {
+            wipe(pass, BIP39_PASSPHRASE_MAX + 1);
+            return 0;
+        }
+        if (key == UI_KEY_B) {
+            if (len) pass[--len] = 0;
+            continue;
+        }
+        if (key == UI_KEY_C) {
+            pass[len] = 0;
+            return 1;
+        }
+        if (key == UI_KEY_LEFT && col > 0) {
+            col--;
+        } else if (key == UI_KEY_RIGHT && col + 1 < (int)passphrase_row_count(layer, row)) {
+            col++;
+        } else if (key == UI_KEY_UP && row > 0) {
+            row--;
+            if (col >= (int)passphrase_row_count(layer, row)) col = (int)passphrase_row_count(layer, row) - 1;
+        } else if (key == UI_KEY_DOWN && row < (int)passphrase_char_rows(layer)) {
+            row++;
+            if (col >= (int)passphrase_row_count(layer, row)) col = (int)passphrase_row_count(layer, row) - 1;
+        } else if (key == UI_KEY_SELECT && row < (int)passphrase_char_rows(layer) && len < BIP39_PASSPHRASE_MAX) {
+            pass[len++] = keys[layer][row][col];
+        } else if (key == UI_KEY_SELECT && row == (int)passphrase_char_rows(layer)) {
+            if (layer == 2) {
+                if (col == 0) layer = 0, row = 0, col = 0;
+                else if (len < BIP39_PASSPHRASE_MAX) pass[len++] = ' ';
+            } else if (col == 0) {
+                layer = 1 - layer;
+            } else if (col == 1) {
+                if (len < BIP39_PASSPHRASE_MAX) pass[len++] = ' ';
+            } else {
+                layer = 2, row = 0, col = 0;
+            }
+        }
+    }
+}
+
+static int load_mnemonic(const char *mn) {
+    char pass[BIP39_PASSPHRASE_MAX + 1];
+    uint8_t seed[64];
+    int ok = 0;
+
+    if (enter_passphrase(pass))
+        ok = bip39_seed_from_mnemonic((const uint8_t *)mn, strlen(mn), (const uint8_t *)pass, strlen(pass), seed) &&
+             core_load_seed(seed);
+    wipe(pass, sizeof(pass));
+    wipe(seed, sizeof(seed));
+    if (ok) printf("seed from input, fingerprint %08x\n", (unsigned int)core_fingerprint());
+    return ok;
+}
+#endif
+
 /* Reads a SeedQR and loads the seed. It is the secret itself, so it is handled here and never goes
  * through the parser */
 static int scan_seed(void) {
     struct quirc *q;
     char status[UI_COLS + 1], mnemonic[256];
-    uint8_t seed[64];
-    /* The payload is the seed. Too large for the stack, so it is static and wiped at the end */
     static struct quirc_code code;
     static struct quirc_data data;
-    int ok = 0;
+    int scanned = 0, ok = 0;
 
-    if (!camera_ready) return message("No camera", "Wire it up or use the test seed.", 1), 0;
-    if (!(q = quirc_new()) || quirc_resize(q, CAMERA_W, CAMERA_H) < 0) return message("Out of memory", NULL, 1), 0;
+    if (!camera_ready) {
+#if defined(__EMSCRIPTEN__)
+        return message("No camera", "Connect camera to scan.", 1), 0;
+#else
+        return message("No camera", "Wire it up or enter mnemonic.", 1), 0;
+#endif
+    }
+    if (!(q = quirc_new())) return message("Out of memory", NULL, 1), 0;
+    if (quirc_resize(q, CAMERA_W, CAMERA_H) < 0) {
+        quirc_destroy(q);
+        return message("Out of memory", NULL, 1), 0;
+    }
     snprintf(status, sizeof(status), "Scan SeedQR");
 
-    while (!ok) {
+    while (!scanned) {
         uint8_t *img = quirc_begin(q, NULL, NULL);
         if (buttons_poll() >= 0) break;
         if (!camera_capture(img, 500)) continue;
         show_preview(img, status);
         quirc_end(q);
-        for (int i = 0; i < quirc_count(q) && !ok; i++) {
+        for (int i = 0; i < quirc_count(q) && !scanned; i++) {
             quirc_extract(q, i, &code);
             if (quirc_decode(&code, &data)) {
                 snprintf(status, sizeof(status), "QR found, cannot read");
@@ -327,17 +589,25 @@ static int scan_seed(void) {
                 snprintf(status, sizeof(status), "Not a valid SeedQR");
                 continue;
             }
-            pbkdf2_hmac_sha512((const uint8_t *)mnemonic, strlen(mnemonic), (const uint8_t *)"mnemonic", 8, 2048, seed);
-            ok = core_load_seed(seed);
+            scanned = 1;
         }
     }
-    /* The captured frame still holds the SeedQR, readable over SWD, so it is wiped before release */
+    /* The camera frame and decoded payload contain the seed, so clear them before requesting a passphrase. */
     wipe(quirc_begin(q, NULL, NULL), (size_t)CAMERA_W * CAMERA_H);
     quirc_destroy(q);
     wipe(&code, sizeof(code));
     wipe(&data, sizeof(data));
+    if (scanned) {
+#if defined(__EMSCRIPTEN__)
+        uint8_t seed[64];
+        ok = bip39_seed_from_mnemonic((const uint8_t *)mnemonic, strlen(mnemonic), NULL, 0, seed) &&
+             core_load_seed(seed);
+        wipe(seed, sizeof(seed));
+#else
+        ok = load_mnemonic(mnemonic);
+#endif
+    }
     wipe(mnemonic, sizeof(mnemonic));
-    wipe(seed, sizeof(seed));
     if (ok) {
         printf("seed from SeedQR, fingerprint %08x\n", (unsigned int)core_fingerprint());
 #if defined(__EMSCRIPTEN__)
@@ -356,10 +626,9 @@ static int load_test_seed(void) {
 
     message("TEST SEED", "Public BIP39 vector. Never send funds to this wallet.", 1);
     t = time_us_64();
-    pbkdf2_hmac_sha512((const uint8_t *)TEST_MNEMONIC, sizeof(TEST_MNEMONIC) - 1, (const uint8_t *)"mnemonic", 8, 2048,
-                       seed);
-    ok = core_load_seed(seed);
-    memset(seed, 0, sizeof(seed));
+    ok = bip39_seed_from_mnemonic((const uint8_t *)TEST_MNEMONIC, sizeof(TEST_MNEMONIC) - 1, NULL, 0, seed) &&
+         core_load_seed(seed);
+    wipe(seed, sizeof(seed));
     printf("seed %llu us, fingerprint %08x\n", (unsigned long long)(time_us_64() - t),
            (unsigned int)core_fingerprint());
 #if defined(__EMSCRIPTEN__)
@@ -373,10 +642,20 @@ static int load_test_seed(void) {
 #endif
 
 static void seed_menu(void) {
-    static const char *const items[] = {"Scan SeedQR", "Use test seed (test only)"};
     int sel;
 
-    ui_menu_init(&menu, "No seed loaded", items, TEST_SEED ? 2 : 1);
+#if defined(__EMSCRIPTEN__)
+#if TEST_SEED
+    static const char *const items[] = {"Scan SeedQR", "Use test seed (test only)"};
+    ui_menu_init(&menu, "No seed loaded", items, 2);
+#else
+    static const char *const items[] = {"Scan SeedQR"};
+    ui_menu_init(&menu, "No seed loaded", items, 1);
+#endif
+#else
+    static const char *const items[] = {"Scan SeedQR", "Enter mnemonic", "Use test seed (test only)"};
+    ui_menu_init(&menu, "No seed loaded", items, 2 + TEST_SEED);
+#endif
     show(&menu.screen);
     for (;;) {
         sel = ui_menu_key(&menu, wait_key());
@@ -389,8 +668,22 @@ static void seed_menu(void) {
             show(&menu.screen);
             continue;
         }
+#if !defined(__EMSCRIPTEN__)
+        if (sel == 1) {
+            char mnemonic[256] = {0};
+            int ok = enter_mnemonic(mnemonic, sizeof(mnemonic)) && load_mnemonic(mnemonic);
+            wipe(mnemonic, sizeof(mnemonic));
+            if (ok) return;
+            show(&menu.screen);
+            continue;
+        }
+#if TEST_SEED
+        if (sel == 2 && load_test_seed()) return;
+#endif
+#else
 #if TEST_SEED
         if (sel == 1 && load_test_seed()) return;
+#endif
 #endif
         show(&menu.screen);
     }
