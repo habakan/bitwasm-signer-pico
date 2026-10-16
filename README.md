@@ -63,8 +63,9 @@ went through that way ([verification procedure](docs/verification.md#signet-tran
 
 Verified in this repository on RP2350 hardware, macOS hosts, and QEMU.
 
-The firmware supports P2WPKH, P2TR key-path and P2WSH multisig of at most three keys (BIP48). BIP39
-passphrase input is planned, but is not available yet.
+The firmware accepts English BIP39 mnemonics and printable ASCII passphrases up to 64 characters. The
+browser demo is for public test seeds and does not offer manual mnemonic or passphrase entry. The
+firmware supports P2WPKH, P2TR key-path and P2WSH multisig of at most three keys (BIP48).
 PSBT v2 is not supported.
 
 ## Try it

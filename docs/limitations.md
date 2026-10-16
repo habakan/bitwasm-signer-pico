@@ -15,8 +15,9 @@ Not reviewed by a third party. signet only. See [Disclaimer](../README.md#discla
   (BIP48, `m/48'/coin'/account'/2'`). The device holds no cosigner keys, so P2WSH change is shown as an
   external address to check by eye, and the Core wallet combines the cosigners' PSBTs.
   A P2WSH spend of two or more inputs needs `non_witness_utxo`, as P2WPKH does.
-- **[BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) passphrase input is planned but not available in the firmware yet.** The shared `signer.wasm`
-  interface accepts a passphrase; the Pico firmware currently derives the seed with an empty passphrase.
+- The firmware accepts English BIP39 mnemonics and printable ASCII passphrases up to 64 characters.
+  Non-ASCII passphrases are not supported. The browser demo is for public test seeds and omits manual
+  mnemonic and passphrase entry.
 - At most **16 inputs and 16 outputs**, and a PSBT of at most **32,768 bytes**.
 - scriptPubKey at most **83 bytes** (the standard OP_RETURN limit; P2TR and P2WSH are 34).
 - Script-path taproot spends, miniscript, and time locks beyond nLockTime passthrough are not handled.

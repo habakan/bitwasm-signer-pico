@@ -38,13 +38,6 @@ html.embedded .device { touch-action:none; }
 .lcd-view { position:relative; width:100%; max-width:280px; aspect-ratio:1; margin:auto; overflow:hidden; }
 canvas#lcd { width:100%; height:100%; max-width:none; aspect-ratio:1; image-rendering:pixelated; background:#000; border:1px solid #45433f; border-radius:4px; display:block; }
 .device-controls { display:flex; flex:none; flex-direction:column; align-items:center; justify-content:center; gap:7px; padding:0 2px; }
-.layout-switch { display:grid; grid-template-columns:1fr 1fr; gap:3px; width:100%; }
-.layout-switch button { min-height:24px; padding:2px 4px; border-radius:6px; font-size:9px; white-space:nowrap; }
-.layout-switch button[aria-pressed="true"] { border-color:#e6a928; background:linear-gradient(#645337,#393127); }
-.two-button-controls { display:none; gap:6px; }
-.two-button-controls button { width:54px; min-height:42px; padding:3px; font-size:10px; }
-.device-controls[data-layout="two-button"] .pad { display:none; }
-.device-controls[data-layout="two-button"] .two-button-controls { display:flex; }
 .pad { display:grid; grid-template-columns:repeat(3,38px); grid-template-rows:repeat(3,38px); gap:4px; }
 button { background:linear-gradient(#4d4b47,#292826); color:var(--key-fg); border:1px solid #64615b; border-radius:10px;
   font:600 13px system-ui; box-shadow:0 2px 3px #0008,inset 0 1px #ffffff20; cursor:pointer; touch-action:manipulation; }
@@ -81,15 +74,7 @@ video { display: none; }
         <canvas id="lcd" width="240" height="240" aria-label="ハードウェアウォレットの画面"></canvas>
       </div>
     </div>
-    <div class="device-controls" id="device-controls" data-layout="five-way">
-      <div class="layout-switch" role="group" aria-label="操作方式">
-        <button type="button" data-layout-choice="two-button" aria-pressed="false">2-Button</button>
-        <button type="button" data-layout-choice="five-way" aria-pressed="true">5-Way Pad</button>
-      </div>
-      <div class="two-button-controls" aria-label="2ボタン操作">
-        <button data-key="1" aria-label="NEXT">NEXT</button>
-        <button data-key="4" aria-label="SELECT">SELECT</button>
-      </div>
+    <div class="device-controls" id="device-controls">
       <div class="pad" aria-label="方向パッド">
         <span></span><button data-key="0" aria-label="Up">&#9650;</button><span></span>
         <button data-key="2" aria-label="Left">&#9664;</button><button data-key="4" aria-label="SELECT">SELECT</button><button data-key="3" aria-label="Right">&#9654;</button>
@@ -102,7 +87,7 @@ video { display: none; }
 <details class="service-panel">
   <summary>Tools</summary>
   <div class="service-body">
-    <p class="help">Pico 2ファームウェアと署名コアをブラウザで実行しています。2ボタンではNEXTで移動し、SELECTで決定します。5方向キーでは前の画面にも戻れます。キーボード: ↓ / NでNEXT、EnterでSELECT、Escで戻るかキャンセル。</p>
+    <p class="help">Pico 2ファームウェアと署名コアをブラウザで実行しています。方向キーで移動し、Enterで決定、Escで戻るかキャンセルします。ニーモニックとパスフレーズの手入力はできません。実シードや実資金は使わないでください。</p>
     <button class="download" id="download" disabled>Download signed UR</button>
     <pre id="log"></pre>
   </div>
@@ -117,9 +102,7 @@ const video = document.getElementById('cam');
 const grab = Object.assign(document.createElement('canvas'), { width: 320, height: 240 }).getContext('2d', { willReadFrequently: true });
 const cameraLabel = document.getElementById('camera-label');
 const cameraLens = document.getElementById('camera-lens');
-const deviceControls = document.getElementById('device-controls');
 let shellLanguage = 'ja';
-let controlLayout = 'five-way';
 let stream = null, idle = 0, embeddedScanIdle = 0;
 let signedUR = new Map();
 const download = document.getElementById('download');
@@ -149,13 +132,6 @@ function applyLanguage(language) {
   shellLanguage = language === 'en' ? 'en' : 'ja';
   document.documentElement.lang = shellLanguage;
   translateShellTree(document.body);
-}
-
-function setControlLayout(layout) {
-  controlLayout = layout === 'two-button' ? 'two-button' : 'five-way';
-  deviceControls.dataset.layout = controlLayout;
-  document.querySelectorAll('[data-layout-choice]').forEach(button =>
-    button.setAttribute('aria-pressed', String(button.dataset.layoutChoice === controlLayout)));
 }
 
 function camera() {
@@ -735,16 +711,11 @@ download.addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
-const keymap = {
-  'five-way': { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3, Enter: 4, ' ': 4, Escape: 5 },
-  'two-button': { ArrowDown: 1, n: 1, Enter: 4, ' ': 4, Escape: 5 },
-};
-document.querySelectorAll('[data-layout-choice]').forEach(button =>
-  button.addEventListener('click', () => setControlLayout(button.dataset.layoutChoice)));
+const keymap = { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3, Enter: 4, ' ': 4, Escape: 5 };
 addEventListener('keydown', e => {
   if (e.target instanceof Element && e.target.closest('button,input,textarea,select,a,[contenteditable="true"]')) return;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  const k = keymap[controlLayout][key];
+  const k = keymap[key];
   if (k === undefined || e.repeat) return;
   e.preventDefault();
   Module.keys.push(k);
