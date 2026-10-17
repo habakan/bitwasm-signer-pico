@@ -119,7 +119,8 @@ void ui_review_init(ui_review_t *r, const core_display_t *d) {
         put_counter(&w, C_TITLE, "Output ", i + 1, d->n_outputs);
         put(&w, color, owner[o->owner]);
         put_amount(&w, color, "", o->amount, 0);
-        put(&w, C_TEXT, "");
+        /* Takes the blank row's place, so the longest OP_RETURN data still fits */
+        put(&w, C_HINT, o->text_kind == CORE_TEXT_OP_RETURN && o->amount ? "Burned: never spendable" : "");
         put(&w, C_HINT,
             o->text_kind == CORE_TEXT_ADDRESS     ? "Address:"
             : o->text_kind == CORE_TEXT_OP_RETURN ? "OP_RETURN data (hex):"
@@ -385,12 +386,13 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
         if (outputs) draw_small(line, y, 134, 140, outputs, C_TEXT);
         if (external) draw_small(line, y, 134, 157, external, C_TEXT);
     } else if (output) {
-        int owner_row = -1, amount_row = -1, label_row = -1;
+        int owner_row = -1, amount_row = -1, label_row = -1, burned = 0;
         const char *address_label = "ADDRESS";
         for (int r = 2; r < UI_ROWS - 1; r++) {
             const char *text = s->text[r];
             if (!strcmp(text, "Send to") || !strcmp(text, "Change") || !strcmp(text, "Self-transfer")) owner_row = r;
             else if (text[0] && (s->color[r] == C_SEND || s->color[r] == C_OURS)) amount_row = r;
+            else if (text_starts(text, "Burned")) burned = 1;
             else if (s->color[r] == C_HINT && text[0] && !is_action_line(text)) {
                 label_row = r;
                 if (text_starts(text, "OP_RETURN")) address_label = "OP_RETURN DATA";
@@ -404,7 +406,7 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
                        external ? C_SEND : C_OURS);
         }
         draw_card(line, y, 12, 77, 216, 47, C_PANEL, C_BORDER);
-        draw_small(line, y, 20, 79, "AMOUNT", C_HINT);
+        draw_small(line, y, 20, 79, burned ? "AMOUNT - BURNED" : "AMOUNT", burned ? C_SEND : C_HINT);
         if (amount_row >= 0) draw_normal(line, y, 20, 99, s->text[amount_row], s->color[amount_row]);
         draw_card(line, y, 12, 130, 216, 74, C_PANEL, C_BORDER);
         draw_small(line, y, 20, 132, address_label, C_HINT);

@@ -57,6 +57,20 @@ int main(void) {
         for (int row = 6; row < UI_ROWS - 1; row++) shown += strlen(r.screens[3].text[row]);
         CHECK(shown == 2 * PLAN_MAX_SPK, "longest script fully shown");
     }
+    {
+        size_t shown = 0;
+        d.outputs[2].text_kind = CORE_TEXT_OP_RETURN, d.outputs[2].amount = 1;
+        memset(d.outputs[2].text, 0, sizeof(d.outputs[2].text));
+        memset(d.outputs[2].text, 'b', 2 * (PLAN_MAX_SPK - 1));
+        ui_review_init(&r, &d);
+        for (int row = 6; row < UI_ROWS - 1; row++) shown += strlen(r.screens[3].text[row]);
+        CHECK(!strcmp(r.screens[3].text[4], "Burned: never spendable"), "OP_RETURN with an amount says it is burned");
+        CHECK(shown == 2 * (PLAN_MAX_SPK - 1), "longest OP_RETURN data fully shown");
+        CHECK(!r.screens[1].text[4][0], "an address output says nothing of burning");
+        d.outputs[2].amount = 0;
+        ui_review_init(&r, &d);
+        CHECK(!r.screens[3].text[4][0], "OP_RETURN without an amount says nothing of burning");
+    }
     printf("%d/%d checks passed\n", checks - failures, checks);
     return failures != 0;
 }
