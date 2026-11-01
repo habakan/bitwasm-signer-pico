@@ -59,7 +59,7 @@ went through that way ([verification procedure](docs/verification.md#signet-tran
 | Checks and building the review screens | 147 ms | native |
 | Signing (2 inputs, ECDSA + Schnorr) | 126 ms | native, cross-checked with embit |
 | Animated QR output | 95 ms per part | reassembled byte-identical by `@ngraveio/bc-ur` |
-| RAM | ~341KB of 520KB | quirc and the PSBT buffers share the heap |
+| RAM | ~346KB of 520KB | the QR reader and the PSBT buffers share the heap |
 
 Verified in this repository on RP2350 hardware, macOS hosts, and QEMU.
 
@@ -117,8 +117,6 @@ make check-psbt        # a full PSBT round, UR round-trip, signatures verified w
 make check-ui          # screen construction
 make check-seedqr      # SeedQR reading, with ASan
 make check-qemu-psbt   # the same round on RV32, output compared with the host
-make check-qemu-qr     # quirc instruction counts
-make check-qr-mac      # quirc vs zxing-cpp on the same images
 make check-camera-sim  # camera.pio against a Python simulator
 make -C components/parts/parser test        # parser vectors (529 checks)
 make -C components/parts/parser check-fuzz  # fuzzing the PSBT and UR parsers
@@ -135,7 +133,7 @@ Host and QEMU checks live under `tests/`.
 | | | TCB |
 |---|---|---|
 | `components/parts/` | Pinned [bitwasm-signer](https://github.com/habakan/bitwasm-signer) submodule: reusable parser and signer modules. Their specifications and host examples are maintained in bitwasm-signer | **outside** |
-| `components/qr/` | QR decoder ([quirc](https://github.com/habakan/quirc) submodule) | outside |
+| `src/runtime/qr_reader/` | QR reader: Rust, from [bitwasm-signer](https://github.com/habakan/bitwasm-signer/tree/main/qr), pinned in `Cargo.toml` | outside |
 | `src/` | The firmware's entry point (`main.c`) and the pin assignment (`board_pins.h`) | inside |
 | `src/drivers/` | Display (ST7789), buttons, camera (PIO + DMA). Runs only on the board | inside |
 | `src/ui/` | Builds the 240x240 screens, independent of where they are shown | inside |

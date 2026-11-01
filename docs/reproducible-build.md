@@ -122,7 +122,9 @@ mean the library holding the keys varies by the day it was fetched.
 | libsecp256k1 | pinned commit |
 | WAMR | pinned upstream commit, including [PR #5123](https://github.com/wasm-micro-runtime/wasm-micro-runtime/pull/5123) |
 | pico-sdk | commit matching a tag |
-| quirc / QR-Code-generator / spleen | pinned commit |
+| QR-Code-generator / spleen | pinned commit |
+| QR reader (`bitwasm-signer`) | pinned commit, in `src/runtime/qr_reader/Cargo.toml` and `Cargo.lock` |
+| Rust | 1.95.0, in `src/runtime/qr_reader/rust-toolchain.toml`. rustup checks the download's signature; this is not pinned by hash |
 
 Moving one means reading the diff, then changing the matching `*_REV` in the `Makefile`.
 
@@ -136,9 +138,10 @@ make build/rp2350/app.elf               # build/rp2350/app.uf2, mainnet
 rm -rf build/rp2350 && make build/rp2350/app.elf TESTNET=1   # signet
 ```
 
-macOS arm64 and Linux x86_64 give the same UF2, from different directories (2026-10-06). The one thing
-that differed was the build date pico-sdk writes into the binary info, so the firmware turns it off
-(`PICO_NO_BI_PROGRAM_BUILD_DATE=1`).
+macOS arm64 and Linux x86_64 give the same UF2, from different directories (2026-10-06, and again on
+2026-11-01 with the Rust QR reader in it). The one thing that differed was the build date pico-sdk
+writes into the binary info, so the firmware turns it off (`PICO_NO_BI_PROGRAM_BUILD_DATE=1`). Rust's
+panic messages name source paths, so the build remaps the repository and Cargo's home to fixed names.
 
 ## Not done yet
 

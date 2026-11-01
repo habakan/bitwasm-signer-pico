@@ -61,7 +61,8 @@ int main(void) {
 #endif
     /* The reading step, where the QR reader takes the camera image and its working memory */
     if (!qr_reader_open()) return printf("QR reader failed\n"), 1;
-    printf("scan phase: reader heap %d B (arena %d B)\n", mallinfo().uordblks, mallinfo().arena);
+    int reader_heap = mallinfo().uordblks;
+    printf("scan phase: reader heap %d B (arena %d B)\n", reader_heap, mallinfo().arena);
     qr_reader_close();
 
     /* The parse-and-sign step, taking the PSBT buffers from that same heap */
@@ -124,6 +125,7 @@ int main(void) {
     printf("signed %u bytes, first 32: ", (unsigned int)out_len);
     for (int i = 0; i < 32; i++) printf("%02x", signed_psbt[i]);
     printf("\npool_highmark %u\nheap arena %d B (%d B if not shared)\ndone\n",
-           (unsigned int)parser_host_pool_highmark(), mallinfo().arena, 91648 + PARSER_PSBT_MAX + SIGNED_PSBT_MAX);
+           (unsigned int)parser_host_pool_highmark(), mallinfo().arena,
+           reader_heap + PARSER_PSBT_MAX + SIGNED_PSBT_MAX);
     while (1) tight_loop_contents();
 }

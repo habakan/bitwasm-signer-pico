@@ -179,15 +179,15 @@ sometimes refuse the `cp`, in which case drag it in Finder.
    (129ms for two inputs) and the signed PSBT came back as an animated QR. The joystick was not
    needed — NEXT (GP17) and SELECT (GP26) were enough. Reading it with a wallet was still unverified
 4. **Done (2026-10-02)**: wired the camera (OV7675 / Arducam B0070). Read PID 0x76 and VER 0x73, and
-   captured QVGA successfully: 191ms per frame, about 5.2fps, with quirc decoding in 61ms.
-   `camera_test.uf2` shows the captured QVGA scaled down on the LCD, reads QRs with our quirc fork, and
+   captured QVGA successfully: 191ms per frame, about 5.2fps, with QR decoding in 61ms at the time.
+   `camera_test.uf2` shows the captured QVGA scaled down on the LCD, reads QRs with the QR reader, and
    puts the capture and decode times and whatever was read on the UART. It also prints the PID read
    over SCCB (0x76 for an OV7670), which makes it useful for checking the wiring
 
 ## Camera capture (`src/drivers/camera.*`)
 
 - PIO (`camera.pio`) picks out only the Y of YUV422 (Y U Y V) and DMA writes QVGA greyscale (76.8KB)
-  straight into the buffer. It captures directly into quirc's image buffer, so there is no second
+  straight into the buffer. It captures directly into the QR reader's frame, so there is no second
   framebuffer
 - Every capture restarts from waiting on VSYNC, so starting partway through a frame still gets the next
   one from its first row. The end of a row is found by waiting for HREF to fall

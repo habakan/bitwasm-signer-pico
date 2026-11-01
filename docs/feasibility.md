@@ -6,132 +6,67 @@ historical: the current firmware runs the signing core natively and uses WASM fo
 
 ## Current device
 
-The current application uses about 341KB of the RP2350's 520KB SRAM. QR decoding and PSBT processing
-share the heap: quirc is released after scanning, before the PSBT buffers are allocated.
+The current application uses about 346KB of the RP2350's 520KB SRAM. QR decoding and PSBT processing
+share the heap: the QR reader is released after scanning, before the PSBT buffers are allocated.
 
 | Item | Size | Basis |
 |---|---:|---|
 | WAMR pool, including parser.wasm memory and UR assembly | 160KB | 152,792 bytes maximum measured use |
 | parser.wasm copy in RAM | 16KB | Rewritten by the interpreter while loading |
-| Shared heap | 92KB | 93,696 bytes peak measured with `mallinfo` |
+| Shared heap | 108KB | 107,872 bytes peak measured with `mallinfo` |
 | Stack | 32KB reserved | 23KB measured; the default 2KB is insufficient |
-| UI, qrcodegen, core, secp256k1, pico-sdk and other use | 42KB | Remainder of the application |
-| **Total** | **about 341KB / 520KB** | |
+| UI, qrcodegen, core, secp256k1, pico-sdk and other use | 30KB | Remainder of the application |
+| **Total** | **about 346KB / 520KB** | |
 
-The shared heap holds about 90KB for quirc while scanning, then about 66KB for PSBT buffers. Without
-sharing, the peak would be 159,232 bytes. About 180KB remains; double-buffering the camera would use
-another 77KB.
+The shared heap holds about 106KB for the QR reader while scanning, 77KB of it the frame, then about
+68KB for PSBT buffers. Without sharing, the peak would be about 173KB. About 174KB remains;
+double-buffering the camera would use another 77KB.
 
 ## QR decoding on the RP2350
 
-These measurements cover quirc and qrcodegen on QEMU RV32 (`-icount shift=0`) and Pico 2 H hardware
-at 150MHz. Synthetic camera-like images were stored in Flash and run with
+The firmware links the QR reader from `bitwasm-signer`, in Rust, with its `small` feature, a read
+budget of 15 and `opt-level="s"`. The measurements are from a Pico 2 H at 150MHz.
+
+### Synthetic frames
+
+`tools/generate/gen_qr_frames.py` puts one UR QR code into a 320×240 grayscale image, with a 5°
+rotation, Gaussian blur, noise and uneven lighting. Run them with
 `make run ELF=build/rp2350/qr_bench.elf`.
 
-### Synthetic image generation
+| QR | Read | Time when it reads |
+|---|---|---|
+| v5 | 6 of 6 | 0.29-0.31s |
+| v8 | 5 of 6 | 0.39-0.40s |
+| v11 | 3 of 6 | 0.42-0.43s |
 
-`tools/generate/gen_qr_frames.py` puts one UR QR code (`UR:CRYPTO-PSBT/12-30/...`, uppercase alphanumeric mode,
-ECC L) into a 320×240 grayscale image. It applies a 5° rotation, Gaussian blur, noise σ=4, 25% side
-and 15% top/bottom illumination variation, and contrast from 40 to 210.
+A frame that does not read takes at most about 2s. The next part of an animated v8 code, read through
+the previous frame's position, takes about 0.07s, and the same frame seen again about 0.04s.
 
-| UR fragment | QR version | Modules |
-|---|---:|---:|
-| 50 bytes | v5 | 37 |
-| 100 bytes | v8 | 49 |
-| 200 bytes | v11 | 61 |
+### The real camera
 
-### Read success by QR size and blur
+An animated PSBT at v6, shown at 4 frames a second on a display, completed in all three runs, including
+one where the code left the frame and came back. It took 9-16 seconds from the first read. 69 of 108
+frames read, at about 240ms, with frames arriving every 384ms. A frame with nothing readable took a
+median of 88-484ms and at most 1.9s. A Standard SeedQR read to the expected fingerprint. Other wallets'
+codes and larger versions have not been tried.
 
-| QR | Span (px) | px/module | Blur σ | quirc | zxing-cpp |
-|---|---|---|---|---|---|
-| v5 | 220 / 190 / 160 | 5.9 / 5.1 / 4.3 | 0.5, 1.0 | all pass | all pass |
-| v8 | 220 | 4.5 | 0.5 / 1.0 | pass / fail | pass / pass |
-| v8 | 190 | 3.9 | 0.5 / 1.0 | pass / pass | pass / pass |
-| v8 | 160 | 3.3 | 0.5 / 1.0 | pass / fail | pass / pass |
-| v11 | 220 | 3.6 | 0.5 / 1.0 | pass / fail | pass / pass |
-| v11 | 190 | 3.1 | 0.5 / 1.0 | fail / fail | pass / pass |
-| v11 | 160 | 2.6 | 0.5 / 1.0 | fail / fail | pass / fail |
+A key is only checked between frames and needs three checks in a row, so a short press can be missed
+during a scan. The scan screen asks for a hold.
 
-The v8 failures are not monotonic: one occurs at the largest 220px span. These results use generated
-images and do not predict camera performance on their own.
+### What this rests on
 
-### Instructions per frame (RV32)
-
-| Operation | v5 | v8 | v11 |
-|---|---:|---:|---:|
-| Decode (upstream quirc, double) | 370M | 622M | - |
-| Decode (upstream quirc, float) | 231M | 388M | - |
-| Decode (patched quirc, float) | 22.5–23.2M | 35.8–36.6M | 40.7M |
-| Frame with no QR found | 2.9–3.9M | | |
-| Generate QR (qrcodegen) | 4.5M | 7.8M | 12.2M |
-| Draw 240×240 RGB565 one row at a time | 1.5M | 1.6M | 1.5M |
-
-Upstream quirc calls `fitness_all` 81 times from `jiggle_perspective`. A frame calls `perspective_map`
-about 430,000 times at roughly 1,300 instructions each, accounting for nearly all decode time. The
-fixed-point patch converts coefficients once per `fitness_all`; `fitness_cell` then uses 32×32→64-bit
-multiplication and 32-bit division, falling back to floating point if coefficients are out of range.
-
-The fixed-point `mcu` branch of [habakan/quirc](https://github.com/habakan/quirc) brought synthetic
-v5 and v8 decoding to 23M and 36M instructions. After divide-by-zero and overflow fixes, they took
-26.8M and 43M. Its 800-image comparison reported no incorrect reads; 789 results matched upstream.
-Building with `-mcpu=hazard3-rp2350 -O2` emits the Hazard3-specific Xh3bextm instruction, which QEMU
-does not support. The QEMU build used
-`-march=rv32imac_zicsr_zifencei_zba_zbb_zbs_zbkb_zcb_zcmp`.
-
-### Pico 2 H measurements (150MHz, 2026-09-25)
-
-Eighteen generated frames were stored in Flash and run on the device.
-
-| Operation | v5 | v8 | v11 | Effective CPI |
-|---|---:|---:|---:|---:|
-| Decode (patched quirc) | 0.278–0.285s | 0.447–0.453s | 0.494s | 1.57 |
-| Frame with no QR found | 0.029–0.038s | | | 1.48 |
-| Generate QR (qrcodegen) | 0.034s | 0.058s | 0.091s | 1.12 |
-| Draw 240×240 RGB565 one row at a time | 0.021s | 0.022s | 0.020s | 2.07 |
-
-Read successes and failures matched QEMU, including two v8 failures and three v11 failures. quirc's
-effective CPI was 1.57, compared with 7.5 for AOT signing code. The frame buffer is in RAM and the hot
-functions are small. Drawing's CPI of 2.07 is dominated by writes to the row buffer. Measured
-throughput was 3.6 fps for v5 and 2.2 fps for v8; frames with no readable QR returned in 30ms.
-
-### OV7675 camera measurements (2026-10-02)
-
-An OV7675 (Arducam B0070) was connected to the Pico 2 H. `camera_test` read actual QR images and
-reassembled a v5 QR (about a 50-byte UR fragment).
-
-| Operation | Measurement |
-|---|---:|
-| Capture | 120ms (VGA frame plus VSYNC wait, about 8fps) |
-| Decode, no QR | 62ms |
-| Decode, QR found | 300ms (grid extraction and error correction) |
-| Effective rate | about 2.5fps |
-
-The OV7675's vertical downscaling (`SCALING_DCWCTR`) did not work. The sensor outputs VGA YUV422;
-PIO keeps the first Y from each `Y U Y V` pair and skips every other row to produce 320×240. This
-does not depend on sensor scaling (`src/drivers/camera.pio`). The same frame may decode or return
-`ECC failure`; camera shake and exposure matter, and adequate lighting improves the success rate.
-At startup, `camera_test` reports GP2–GP17 states and PCLK, HREF, and VSYNC edge counts to help find
-wiring mistakes.
-
-The current design keeps QR decoding native and in the TCB. Putting it in WASM would make it about
-80 times slower, over ten seconds per frame even with the fixed-point patch. Synthetic QVGA frames
-decode through v8, but real camera reliability at v8 has not been established. The current quirc fork
-also carries unmerged security fixes (#158, #159), UBSan and fuzzing work, and a fix for
-NaN-to-integer conversion in upstream `perspective_map()`; see its `mcu/README.md`.
+- **No FPU:** the RISC-V cores have none, so the reader keeps floats out of its hot loops: pattern
+  search and sampling work in integers.
+- **Flash cache:** `opt-level=3` was slower than `"s"`, with about 214,000 cache misses against 8,700
+  on one v5 read.
+- **WASM:** `qr.wasm` on the interpreter took 14-27s per frame and about 160KB, around 30 times slower
+  than native, so decoding stays native and in the TCB.
+- **Reader limits:** a larger budget reads more on hard frames, at the cost of seconds per frame. The
+  QVGA limit makes the reader refuse codes above v15.
 
 QR generation is not the bottleneck: drawing a v11 QR on the 240×240 LCD took under 14 million
 instructions. For animated output, 100-byte fragments keep frames at v8. Larger PSBTs, especially
 those carrying full previous transactions, can require many frames.
-
-### QR reproduction
-
-```sh
-make deps
-make check-qemu-qr
-make check-qemu-qr QUIRC=third_party/quirc/lib QUIRC_DEFS=  # upstream quirc (double)
-make check-qr-mac
-make run ELF=build/rp2350/qr_bench.elf                    # hardware, via SWD and UART
-```
 
 ## Earlier experiments: signer and key derivation in WASM
 

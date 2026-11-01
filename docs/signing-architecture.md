@@ -18,13 +18,13 @@ compromised, it cannot read the key from its linear memory.
 | a compromised parser shows A on screen and signs B | defended. What is displayed and what goes into the sighash are built natively from the same struct (§5) |
 | a compromised parser honestly displays a transaction the user should not accept | not defended. That is what the user's confirmation is for |
 | a compromised parser corrupts the output PSBT | not defended. A signature commits to the transaction, so a corrupted PSBT is merely invalid — denial of service |
-| the QR decoder (quirc) is taken over | not defended. quirc stays native and stays in the TCB (§7) |
+| the QR reader is taken over | not defended. It stays native and stays in the TCB (§7) |
 | the SeedQR parser is taken over | out of scope, because that parser is not in WASM (§4) |
 
 ## 3. The shape of it
 
 ```
-Camera ─> quirc (native) ─> QR payload bytes
+Camera ─> QR reader (native) ─> QR payload bytes
                                  │
                                  ▼
              ┌──────── parser.wasm (no keys) ───────┐
@@ -54,7 +54,7 @@ with `wasm_runtime_validate_app_addr` before copying anything.
 
 | what | where | why |
 |---|---|---|
-| decoding the QR image (quirc) | native | over ten seconds per frame in WASM ([QR feasibility measurements](feasibility.md#qr-decoding-on-the-rp2350)) |
+| decoding the QR image (QR reader) | native | over ten seconds per frame in WASM ([QR feasibility measurements](feasibility.md#qr-decoding-on-the-rp2350)) |
 | UR / BBQr reassembly, CBOR, PSBT parsing | parser.wasm | the most complex parsing of untrusted input, and light because no crypto is involved |
 | parsing a SeedQR or typed words | native | the input is the secret itself, so putting it in WASM would defeat the isolation |
 | checking the Plan, deriving keys, confirming ownership, sighash, signing | native | it touches keys |
@@ -97,8 +97,9 @@ to the PSBT. It only establishes two things:
 
 ## 7. What risk remains
 
-- **quirc remains a parser of untrusted input inside the TCB.** It is fuzzed, but remains part of the
-  trusted computing base because decoding in WASM is too slow
+- **The QR reader remains a parser of untrusted input inside the TCB.** It is written in Rust, with
+  overflow checks on and a panic that wipes the key and restarts, but stays in the trusted computing
+  base because decoding in WASM is too slow
 - **The code that reads the Plan also reads untrusted input natively.** Restricted to fixed-length
   records and kept to around a hundred lines
 - **An input that makes parser.wasm run indefinitely.** WAMR runs without an instruction limit, so the
@@ -444,8 +445,8 @@ carried its two elements and a node verified the signature and accepted it.
 
 - A `TESTNET=1` build targets signet and testnet: `m/84'/1'/0'`, with `tb1...` addresses.
   `core_review` has always checked the derivation path's coin type against the network
-- Set Sparrow's **Preferences → Appearance → QR Density** to `Low`. The device's camera, QVGA plus
-  quirc, reads reliably up to about v8, 49 modules
+- Set Sparrow's **Preferences → Appearance → QR Density** to `Low`. The device's camera at QVGA has
+  been checked on v6, 41 modules; synthetic frames read up to v11, and the reader refuses above v15
 - **Not for mainnet yet.** With a Debug Probe attached the RAM can be read, and there is no case and no
   PIN. Using this for real needs the SWD detached and a third-party review; the xpub export was
   finished on 2026-10-03
@@ -465,7 +466,7 @@ Traces of the seed that were being left behind now get cleared too.
 
 | what was left | what now happens |
 |---|---|
-| `quirc_code` / `quirc_data`, static, holding the SeedQR's 48 digits verbatim | `wipe` once read |
+| the QR reader's output and working memory, holding the SeedQR's 48 digits verbatim | `wipe` once read |
 | the captured camera frame, with the SeedQR in it | `wipe` before release |
 | the mnemonic and the seed, already cleared | unchanged |
 
