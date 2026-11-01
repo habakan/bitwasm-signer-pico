@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "bitwasm-signer-qr"
 version = "0.1.0"
-source = "git+https://github.com/habakan/bitwasm-signer?rev=9402194c18e4727ecd804193c5ef8b744ac9c7ee#9402194c18e4727ecd804193c5ef8b744ac9c7ee"
+source = "git+https://github.com/habakan/bitwasm-signer?rev=df882bd9c5402e9d32eca0fee2d80f32c87b329e#df882bd9c5402e9d32eca0fee2d80f32c87b329e"
 
 [[package]]
 name = "qr_reader"
