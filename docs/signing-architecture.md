@@ -217,7 +217,7 @@ Tests: 71 checks, passing on both the Mac and RV32:
 - Five deliberate breakages — BIP143's hash type, BIP341's spend_type, the fee-attack check, bech32m's
   constant, base58's leading zeros — were each confirmed to make a test fail
 
-### parser.wasm (`components/parts/parser/src/psbt.c`, the [bitwasm-signer](https://github.com/habakan/bitwasm-signer) submodule)
+### parser.wasm (`components/parts/parser/src/psbt.c`, the [bitwasm-signer](https://github.com/bitwasm-project/bitwasm-signer) submodule)
 
 - Turns a PSBT v0 (BIP174) into a `plan_t`, and inserts the natively produced signatures just before
   the end of each input map, leaving every other byte as it was
