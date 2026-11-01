@@ -9,7 +9,8 @@ build/test_psbt.h: build/psbt/own_p2wpkh_1in.psbt
 
 build/rp2350/app.elf: build/parser_wasm.h build/font8x16.h build/test_psbt.h \
   src/main.c src/drivers/st7789.c src/drivers/buttons.c CMakeLists.txt \
-  src/runtime/parser_host.c src/ui/ui.c $(CORE_SRC) components/parts/parser/c/include/*.h
+  src/runtime/qr_reader.c src/runtime/qr_reader.h src/runtime/qr_reader/src/lib.rs \
+  src/runtime/qr_reader/Cargo.lock src/runtime/parser_host.c src/ui/ui.c $(CORE_SRC) components/parts/parser/c/include/*.h
 	cmake -S . -B build/rp2350 -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel \
 	  -DPICO_SDK_PATH=$(CURDIR)/third_party/pico-sdk -DPICO_TOOLCHAIN_PATH=$(RISCV_TC) \
 	  -DWAMR_BUILD_AOT=0 -DTESTNET=$(TESTNET) -DTEST_SEED=$(TEST_SEED) -DSIGNER_WASM_H_DIR=$(CURDIR)/build >/dev/null

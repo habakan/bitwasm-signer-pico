@@ -42,27 +42,36 @@ if(NOT DEFINED TESTNET)
 endif()
 set(QUIRC ${ROOT}/components/qr/quirc/lib)
 set(QUIRC_SRC ${QUIRC}/decode.c ${QUIRC}/identify.c ${QUIRC}/quirc.c ${QUIRC}/version_db.c)
-set(APP_SRC ${SRC}/main.c ${SRC}/drivers/st7789.c
+# The QR reader, in Rust. Cargo decides for itself whether anything changed, so it always runs
+set(QR_READER_DIR ${SRC}/runtime/qr_reader)
+set(QR_READER_LIB ${CMAKE_CURRENT_BINARY_DIR}/qr_reader/riscv32imac-unknown-none-elf/release/libqr_reader.a)
+add_custom_target(qr_reader_lib
+  COMMAND cargo build --release --locked --target-dir ${CMAKE_CURRENT_BINARY_DIR}/qr_reader
+  WORKING_DIRECTORY ${QR_READER_DIR}
+  BYPRODUCTS ${QR_READER_LIB}
+  USES_TERMINAL)
+set(APP_SRC ${SRC}/main.c ${SRC}/runtime/qr_reader.c ${SRC}/drivers/st7789.c
   ${SRC}/drivers/buttons.c ${SRC}/runtime/parser_host.c ${SRC}/ui/ui.c ${ROOT}/third_party/QR-Code-generator/c/qrcodegen.c
   ${ROOT}/components/parts/signer/core.c ${ROOT}/components/parts/signer/address.c ${ROOT}/components/parts/signer/bip32.c ${ROOT}/components/parts/signer/sighash.c ${ROOT}/components/parts/parser/c/src/tx.c
   ${ROOT}/components/parts/parser/c/src/sha256.c ${ROOT}/components/parts/signer/ripemd160.c ${ROOT}/components/parts/signer/sha512.c ${ROOT}/components/parts/signer/secp_callbacks.c ${ROOT}/components/parts/signer/seedqr.c
   ${ROOT}/components/parts/signer/bip85.c ${ROOT}/components/parts/signer/multisig.c ${ROOT}/components/parts/signer/cbor.c ${ROOT}/components/parts/signer/multisig_cbor.c
   ${ROOT}/components/parts/signer/secp256k1_unity.c ${SRC}/drivers/camera.c ${SRC}/drivers/camera_ov7670.c
-  ${QUIRC_SRC} ${WAMR_RUNTIME_LIB_SOURCE})
+  ${WAMR_RUNTIME_LIB_SOURCE})
 foreach(t app app_nolcd)
   add_executable(${t} ${APP_SRC})
   pico_generate_pio_header(${t} ${SRC}/drivers/camera.pio)
   target_compile_definitions(${t} PRIVATE PICO_BUILD=1 ENABLE_MODULE_EXTRAKEYS=1 ENABLE_MODULE_SCHNORRSIG=1 ENABLE_MODULE_RECOVERY=1
     ECMULT_WINDOW_SIZE=2 USE_EXTERNAL_DEFAULT_CALLBACKS=1 COMB_BLOCKS=2 COMB_TEETH=5 PICO_STACK_SIZE=0x8000
     NO_LCD=$<STREQUAL:${t},app_nolcd> TEST_SEED=${TEST_SEED} TESTNET=${TESTNET}
-    QUIRC_FIXED_POINT_FITNESS QUIRC_FLOAT_TYPE=float QUIRC_USE_TGMATH
     # __DATE__ in the binary info would make every UF2 differ from the released one
     PICO_NO_BI_PROGRAM_BUILD_DATE=1)
   target_compile_options(${t} PRIVATE -Wno-unused-function)
   target_include_directories(${t} PRIVATE ${SIGNER_WASM_H_DIR} ${SRC} ${SRC}/drivers ${ROOT}/components/parts/signer
     ${SRC}/runtime ${ROOT}/components/parts/parser/c/include ${SRC}/ui ${ROOT}/third_party/QR-Code-generator/c ${SECP}/include ${SECP}/src
-    ${QUIRC})
-  target_link_libraries(${t} pico_stdlib pico_rand hardware_spi hardware_pio hardware_dma hardware_i2c hardware_clocks)
+    )
+  add_dependencies(${t} qr_reader_lib)
+  target_link_libraries(${t} pico_stdlib pico_rand hardware_watchdog hardware_spi hardware_pio hardware_dma hardware_i2c
+    hardware_clocks ${QR_READER_LIB})
   pico_enable_stdio_uart(${t} 1)
   pico_enable_stdio_usb(${t} 0)
   target_link_options(${t} PRIVATE -Wl,--print-memory-usage)

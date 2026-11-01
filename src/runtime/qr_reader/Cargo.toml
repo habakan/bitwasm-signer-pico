@@ -1,0 +1,22 @@
+[package]
+name = "qr_reader"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+bitwasm-signer-qr = { git = "https://github.com/habakan/bitwasm-signer", rev = "8cff19847349390be98fcb71de385ead29f9e819", default-features = false, features = ["small"] }
+
+# Size, not speed: code that outgrows the flash cache runs slower on this chip, not faster
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+codegen-units = 1
+overflow-checks = true   # the pixels are attacker-controlled
+
+[workspace]
