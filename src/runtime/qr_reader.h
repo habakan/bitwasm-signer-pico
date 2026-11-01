@@ -17,5 +17,7 @@ int32_t qr_reader_read(qr_reader_kind_t kind);
 const uint8_t *qr_reader_output(void);
 /* Wipes the frame and everything the read left behind, then releases the memory */
 void qr_reader_close(void);
+/* What else to wipe if the reader panics, as the device restarts straight after */
+extern void (*qr_reader_on_panic)(void);
 
 #endif

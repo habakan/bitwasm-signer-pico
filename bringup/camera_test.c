@@ -1,12 +1,12 @@
-/* Camera bring-up: shows the captured QVGA scaled down on the LCD and reads QRs with our quirc fork,
- * the fixed-point one. Capture and decode times, and whatever was read, go to the UART */
+/* Camera bring-up: shows the captured QVGA scaled down on the LCD and reads QRs with the QR reader.
+ * Capture and decode times, and whatever was read, go to the UART */
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
 #include "board_pins.h"
 #include "camera.h"
 #include "hardware/gpio.h"
-#include "quirc.h"
+#include "qr_reader.h"
 #include "st7789.h"
 
 /* Finds which line is missing. D0-D7, PCLK, HREF and VSYNC run consecutively from GP2 to GP12 */
@@ -66,7 +66,6 @@ static void probe_signals(void) {
 }
 
 int main(void) {
-    struct quirc *q;
     uint16_t line[240];
     uint8_t val;
 
@@ -80,11 +79,11 @@ int main(void) {
     if (camera_read_reg(0x0b, &val)) printf("VER 0x%02x\n", val);
     if (!camera_init(&camera_ov7670)) return printf("register setup failed\n"), 1;
     probe_signals();
-    if (!(q = quirc_new()) || quirc_resize(q, CAMERA_W, CAMERA_H) < 0) return printf("quirc alloc failed\n"), 1;
+    if (!qr_reader_open()) return printf("QR reader alloc failed\n"), 1;
 
     for (;;) {
-        /* Captured straight into quirc's image buffer, which malloc leaves 4-byte aligned */
-        uint8_t *img = quirc_begin(q, NULL, NULL);
+        /* Captured straight into the reader's frame, which malloc leaves 4-byte aligned */
+        uint8_t *img = qr_reader_frame();
         uint64_t t0 = time_us_64(), t1, t2;
         if (!camera_capture(img, 1000)) {
             printf("capture timeout\n");
@@ -103,17 +102,10 @@ int main(void) {
             st7789_write_line(line);
         }
 
-        quirc_end(q);
+        int32_t read = qr_reader_read(QR_READER_ANY);
         t2 = time_us_64();
-        printf("capture %llu us (%llu fps), decode %llu us, codes %d\n", (unsigned long long)(t1 - t0),
-               (unsigned long long)(1000000 / (t1 - t0)), (unsigned long long)(t2 - t1), quirc_count(q));
-        for (int i = 0; i < quirc_count(q); i++) {
-            static struct quirc_code code;
-            static struct quirc_data data;
-            quirc_extract(q, i, &code);
-            quirc_decode_error_t err = quirc_decode(&code, &data);
-            if (err) printf("  %s\n", quirc_strerror(err));
-            else printf("  v%d: %.*s\n", data.version, data.payload_len, (const char *)data.payload);
-        }
+        printf("capture %llu us (%llu fps), decode %llu us, read %d\n", (unsigned long long)(t1 - t0),
+               (unsigned long long)(1000000 / (t1 - t0)), (unsigned long long)(t2 - t1), (int)read);
+        if (read > 0) printf("  %.*s\n", (int)read, (const char *)qr_reader_output());
     }
 }

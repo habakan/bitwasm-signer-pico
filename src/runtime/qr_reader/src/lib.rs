@@ -1,15 +1,18 @@
 //! The C entry points to the QR reader. The caller owns the memory, so that it can be released for
 //! the signing step.
-#![no_std]
+#![cfg_attr(target_os = "none", no_std)]
 
 use bitwasm_signer_qr as qr;
 use core::mem::size_of;
 use core::slice;
 
+// The browser demo has std's panic, which aborts
+#[cfg(target_os = "none")]
 extern "C" {
     fn qr_reader_panic() -> !;
 }
 
+#[cfg(target_os = "none")]
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     unsafe { qr_reader_panic() }

@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "camera.h"
-#include "core.h"
-#include "hardware/watchdog.h"
+#include "pico/stdlib.h"
 #include "wipe.h"
+#ifndef __EMSCRIPTEN__
+#include "hardware/watchdog.h"
+#endif
 
 /* Without an FPU a frame that nearly reads takes seconds at the library's full budget, while the
  * camera is already holding the next one. 15 keeps the worst frame near 2.3s */
@@ -19,6 +21,7 @@ int32_t qr_reader_decode(void *state, const uint8_t *px, size_t w, size_t h, boo
 
 static uint8_t *memory, *output;
 static size_t memory_size;
+void (*qr_reader_on_panic)(void);
 
 bool qr_reader_open(void) {
     /* The frame first: malloc's alignment is what the camera's DMA and the state both need */
@@ -50,11 +53,13 @@ void qr_reader_close(void) {
     memory = output = NULL;
 }
 
+#ifndef __EMSCRIPTEN__
 /* Called from Rust's panic handler. A reset keeps RAM, so the frame and the key are wiped first */
 void qr_reader_panic(void) {
     qr_reader_close();
-    core_unload();
+    if (qr_reader_on_panic) qr_reader_on_panic();
     printf("QR reader panicked, restarting\n");
     watchdog_reboot(0, 0, 0);
     for (;;) tight_loop_contents();
 }
+#endif

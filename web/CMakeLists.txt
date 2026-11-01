@@ -24,21 +24,30 @@ set(TEST_SEED 1 CACHE STRING "allow selecting the BIP39 test vector seed")
 set(TESTNET 1 CACHE STRING "testnet / signet addresses and derivation")
 set(TEST_PSBT_H_DIR ${SIGNER_WASM_H_DIR} CACHE PATH "directory containing test_psbt.h")
 set(SECP ${ROOT}/third_party/secp256k1)
-set(QUIRC ${ROOT}/components/qr/quirc/lib)
 # CORE_SRC comes from mk/config.mk, so the web build follows whatever the signer core is made of
 separate_arguments(CORE_SRC)
 list(TRANSFORM CORE_SRC PREPEND ${ROOT}/)
-set(WEB_SRC ${CMAKE_CURRENT_LIST_DIR}/hal.c ${SRC}/main.c ${SRC}/runtime/parser_host.c ${SRC}/ui/ui.c
+set(WEB_SRC ${CMAKE_CURRENT_LIST_DIR}/hal.c ${SRC}/main.c ${SRC}/runtime/qr_reader.c ${SRC}/runtime/parser_host.c ${SRC}/ui/ui.c
   ${ROOT}/third_party/QR-Code-generator/c/qrcodegen.c ${CORE_SRC} ${ROOT}/components/parts/signer/seedqr.c
-  ${ROOT}/components/parts/signer/secp256k1_unity.c ${QUIRC}/decode.c ${QUIRC}/identify.c ${QUIRC}/quirc.c ${QUIRC}/version_db.c)
+  ${ROOT}/components/parts/signer/secp256k1_unity.c)
 list(REMOVE_DUPLICATES WEB_SRC)
 add_executable(signer ${WEB_SRC} ${WAMR_RUNTIME_LIB_SOURCE})
+# The same QR reader as the firmware
+set(QR_READER_LIB ${CMAKE_CURRENT_BINARY_DIR}/qr_reader/wasm32-unknown-emscripten/release/libqr_reader.a)
+add_custom_target(qr_reader_lib
+  COMMAND cargo build --release --locked --target wasm32-unknown-emscripten
+    --target-dir ${CMAKE_CURRENT_BINARY_DIR}/qr_reader
+  WORKING_DIRECTORY ${SRC}/runtime/qr_reader
+  BYPRODUCTS ${QR_READER_LIB}
+  USES_TERMINAL)
+add_dependencies(signer qr_reader_lib)
+target_link_libraries(signer PRIVATE ${QR_READER_LIB})
 target_compile_definitions(signer PRIVATE ENABLE_MODULE_EXTRAKEYS=1 ENABLE_MODULE_SCHNORRSIG=1 ENABLE_MODULE_RECOVERY=1
   ECMULT_WINDOW_SIZE=2 USE_EXTERNAL_DEFAULT_CALLBACKS=1 COMB_BLOCKS=2 COMB_TEETH=5 NO_LCD=0 TEST_SEED=${TEST_SEED}
-  TESTNET=${TESTNET} _PLATFORM_WASI_TYPES_H QUIRC_FIXED_POINT_FITNESS QUIRC_FLOAT_TYPE=float QUIRC_USE_TGMATH)
+  TESTNET=${TESTNET} _PLATFORM_WASI_TYPES_H)
 target_include_directories(signer PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${TEST_PSBT_H_DIR} ${SIGNER_WASM_H_DIR}
   ${SRC}/drivers ${SRC}/runtime ${SRC}/ui
-  ${ROOT}/components/parts/signer ${ROOT}/components/parts/parser/c/include ${ROOT}/third_party/QR-Code-generator/c ${QUIRC}
+  ${ROOT}/components/parts/signer ${ROOT}/components/parts/parser/c/include ${ROOT}/third_party/QR-Code-generator/c
   ${SECP}/include ${SECP}/src)
 target_compile_options(signer PRIVATE -Wno-unused-function)
 # Without ASYNCIFY_IGNORE_INDIRECT every call through the interpreter's tables gets instrumented;

@@ -1,4 +1,4 @@
 [toolchain]
 channel = "1.95.0"
-targets = ["riscv32imac-unknown-none-elf"]
+targets = ["riscv32imac-unknown-none-elf", "wasm32-unknown-emscripten"]
 profile = "minimal"

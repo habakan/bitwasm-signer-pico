@@ -497,6 +497,7 @@ static void main_menu(void) {
 
 int main(void) {
     stdio_init_all();
+    qr_reader_on_panic = core_unload;
 #if !NO_LCD
     st7789_init();
 #endif

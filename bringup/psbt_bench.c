@@ -11,7 +11,7 @@
 #include "parser_host.h"
 #include "sha512.h"
 #include "ui.h"
-#include "quirc.h"
+#include "qr_reader.h"
 #include "parser_wasm.h"
 #include "test_psbt.h"
 
@@ -28,9 +28,9 @@ static uint8_t parser_wasm_rw[sizeof(parser_wasm)];
 #else
 #define MODE "AOT"
 #endif
-/* Uses the same heap as quirc, one after the other, since the two are never needed at once. What this
- * is checking is that taking the memory back after releasing quirc keeps the peak at the larger of
- * the two rather than their sum */
+/* Uses the same heap as the QR reader, one after the other, since the two are never needed at once.
+ * What this is checking is that taking the memory back after closing it keeps the peak at the larger
+ * of the two rather than their sum */
 #define SIGNED_PSBT_MAX (PARSER_PSBT_MAX + 2048)
 static uint8_t *prevtx_arena, *signed_psbt;
 static plan_t plan;
@@ -59,11 +59,10 @@ int main(void) {
     memcpy(parser_wasm_rw, parser_wasm, sizeof(parser_wasm_rw));
     image = parser_wasm_rw;
 #endif
-    /* The reading step, where quirc takes the camera image and its working memory */
-    struct quirc *q = quirc_new();
-    if (!q || quirc_resize(q, 320, 240) < 0) return printf("quirc failed\n"), 1;
-    printf("scan phase: quirc heap %d B (arena %d B)\n", mallinfo().uordblks, mallinfo().arena);
-    quirc_destroy(q);
+    /* The reading step, where the QR reader takes the camera image and its working memory */
+    if (!qr_reader_open()) return printf("QR reader failed\n"), 1;
+    printf("scan phase: reader heap %d B (arena %d B)\n", mallinfo().uordblks, mallinfo().arena);
+    qr_reader_close();
 
     /* The parse-and-sign step, taking the PSBT buffers from that same heap */
     prevtx_arena = malloc(PARSER_PSBT_MAX);
