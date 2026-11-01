@@ -117,11 +117,15 @@ static void receive_psbt_part(const char *part, uint32_t part_len, int32_t *rc, 
     } else if (*rc > 0) {
         *len = (uint32_t)*rc;
     } else if (*rc == 0) {
-        /* Beyond seq_len a part mixes several others, so it helps but is not one more of seq_len */
-        if (seq && seq <= 64 && (!seq_len || seq <= seq_len) && !(*seen >> (seq - 1) & 1))
-            *seen |= (uint64_t)1 << (seq - 1), (*parts)++;
-        if (seq_len) snprintf(status, status_cap, "Scan PSBT  %u/%u parts", *parts, seq_len);
-        else snprintf(status, status_cap, "Scan PSBT  %u parts", *parts);
+        /* Parts past seq_len mix several others, so a PSBT can complete at any count near seq_len and
+         * only an estimate can be shown. It stays below 100 until the PSBT is really complete */
+        if (seq && !(*seen >> ((seq - 1) % 64) & 1)) *seen |= (uint64_t)1 << ((seq - 1) % 64), (*parts)++;
+        if (seq_len) {
+            unsigned int percent = *parts * 100 / seq_len;
+            snprintf(status, status_cap, "Scan PSBT  %u%%", percent > 99 ? 99 : percent);
+        } else {
+            snprintf(status, status_cap, "Scan PSBT  %u parts", *parts);
+        }
     } else {
         snprintf(status, status_cap, "UR error %d", (int)*rc);
     }
