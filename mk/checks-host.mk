@@ -6,16 +6,6 @@ build/qr_frames.h: tools/generate/gen_qr_frames.py
 	mkdir -p build && uv run -q $< $@
 
 
-# Compare quirc and zxing-cpp decoding on macOS; check-qemu-qr measures instruction counts.
-build/qr_bench_mac: tests/host/qr_bench.c build/qr_frames.h $(QUIRC)/identify.c
-	cc -O2 -Wall $(QUIRC_DEFS) -I$(QUIRC) -I$(QRGEN) -Ibuild -o $@ tests/host/qr_bench.c $(QUIRC)/*.c $(QRGEN)/qrcodegen.c
-
-check-qr-mac: build/qr_bench_mac
-	build/qr_bench_mac | awk '{print $$1, $$4}'
-	uv run -q tests/host/zxing_check.py build/qr_frames | sed 's/^/zxing /'
-.PHONY: check-qr-mac
-
-
 build/core_vectors.h: tools/generate/gen_core_vectors.py tests/vectors/bip341-wallet-test-vectors.json
 	mkdir -p build && uv run -q $< tests/vectors/bip341-wallet-test-vectors.json $@
 

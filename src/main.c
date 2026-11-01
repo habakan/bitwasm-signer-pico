@@ -14,7 +14,7 @@
 #include "st7789.h"
 #include "buttons.h"
 #include "camera.h"
-#include "quirc.h"
+#include "qr_reader.h"
 #include "seedqr.h"
 #include "parser_wasm.h"
 #include "test_psbt.h"
@@ -28,8 +28,8 @@
  * encoding. Measured at 149KB peak under QEMU */
 static char pool[160 * 1024];
 static uint8_t parser_wasm_rw[sizeof(parser_wasm)];
-/* Not needed at the same time as quirc while reading (90KB, 77KB of it the image), so this is taken
- * from the heap only for the signing step */
+/* Not needed at the same time as the QR reader (106KB, 77KB of it the image), so this is taken from
+ * the heap only for the signing step */
 #define SIGNED_PSBT_MAX (PARSER_PSBT_MAX + 2048)
 static uint8_t *prevtx_arena, *signed_psbt, *psbt;
 static int camera_ready;
@@ -72,8 +72,8 @@ static void message(const char *title, const char *body, int warn) {
     wait_key();
 }
 
-/* The buffers the signing step uses, released on the way back to the menu because quirc takes the
- * same memory while reading */
+/* The buffers the signing step uses, released on the way back to the menu because the QR reader
+ * takes the same memory */
 static int sign_buffers_take(void) {
     prevtx_arena = malloc(PARSER_PSBT_MAX);
     signed_psbt = malloc(SIGNED_PSBT_MAX);
@@ -117,9 +117,15 @@ static void receive_psbt_part(const char *part, uint32_t part_len, int32_t *rc, 
     } else if (*rc > 0) {
         *len = (uint32_t)*rc;
     } else if (*rc == 0) {
-        if (seq && seq <= 64 && !(*seen >> (seq - 1) & 1)) *seen |= (uint64_t)1 << (seq - 1), (*parts)++;
-        if (seq_len) snprintf(status, status_cap, "Scan PSBT  %u/%u parts", *parts, seq_len);
-        else snprintf(status, status_cap, "Scan PSBT  %u parts", *parts);
+        /* Parts past seq_len mix several others, so a PSBT can complete at any count near seq_len and
+         * only an estimate can be shown. It stays below 100 until the PSBT is really complete */
+        if (seq && !(*seen >> ((seq - 1) % 64) & 1)) *seen |= (uint64_t)1 << ((seq - 1) % 64), (*parts)++;
+        if (seq_len) {
+            unsigned int percent = *parts * 100 / seq_len;
+            snprintf(status, status_cap, "Scan PSBT  %u%%", percent > 99 ? 99 : percent);
+        } else {
+            snprintf(status, status_cap, "Scan PSBT  %u parts", *parts);
+        }
     } else {
         snprintf(status, status_cap, "UR error %d", (int)*rc);
     }
@@ -127,7 +133,6 @@ static void receive_psbt_part(const char *part, uint32_t part_len, int32_t *rc, 
 
 /* Reads an animated QR and reassembles the PSBT. Returns its length, or 0 if cancelled or failed */
 static uint32_t scan_psbt(void) {
-    struct quirc *q;
     unsigned int parts = 0;
     uint64_t seen = 0; /* which parts have arrived, so a repeat is not counted twice */
     uint32_t len = 0;
@@ -135,7 +140,7 @@ static uint32_t scan_psbt(void) {
 
     if (!camera_ready) return message("No camera", "Wire it up or use the test PSBT.", 1), 0;
     if (!(psbt = malloc(PARSER_PSBT_MAX))) return message("Out of memory", NULL, 1), 0;
-    if (!(q = quirc_new()) || quirc_resize(q, CAMERA_W, CAMERA_H) < 0) {
+    if (!qr_reader_open()) {
         free(psbt), psbt = NULL;
         return message("Out of memory", NULL, 1), 0;
     }
@@ -143,28 +148,23 @@ static uint32_t scan_psbt(void) {
     snprintf(status, sizeof(status), "Scan PSBT: aim at the QR");
 
     while (!len) {
-        uint8_t *img = quirc_begin(q, NULL, NULL); /* captured straight into quirc's image buffer */
-        int found = 0;
+        int32_t read, rc = 0;
         if (buttons_poll() >= 0) break; /* any key cancels */
-        if (!camera_capture(img, 500)) continue;
-        show_preview(img, status);
-        quirc_end(q);
-        for (int i = 0; i < quirc_count(q) && !len; i++) {
-            static struct quirc_code code;
-            static struct quirc_data data;
-            int32_t rc = 0;
-            quirc_extract(q, i, &code);
-            found = 1;
-            if (quirc_decode(&code, &data)) {
-                snprintf(status, sizeof(status), "QR found, cannot read");
-                continue;
-            }
-            receive_psbt_part((const char *)data.payload, (uint32_t)data.payload_len, &rc, &parts, &seen, &len, psbt,
-                              status, sizeof(status));
+        if (!camera_capture(qr_reader_frame(), 500)) continue;
+        show_preview(qr_reader_frame(), status);
+        read = qr_reader_read(QR_READER_ANIMATED);
+        if (read > 0) {
+            receive_psbt_part((const char *)qr_reader_output(), (uint32_t)read, &rc, &parts, &seen, &len, psbt, status,
+                              sizeof(status));
+        } else if (read == QR_READER_WRONG_KIND) {
+            snprintf(status, sizeof(status), "QR read, not a PSBT");
+        } else if (read == QR_READER_UNREADABLE) {
+            snprintf(status, sizeof(status), "QR found, cannot read");
+        } else if (parts == 0) {
+            snprintf(status, sizeof(status), "Scan PSBT: no QR in view");
         }
-        if (!found && parts == 0) snprintf(status, sizeof(status), "Scan PSBT: no QR in view");
     }
-    quirc_destroy(q);
+    qr_reader_close();
     if (!len) free(psbt), psbt = NULL;
     printf("scan: %u parts, psbt %u bytes\n", parts, (unsigned int)len);
     return len;
@@ -299,31 +299,26 @@ static void scan_and_sign(void) {
 /* Reads a SeedQR and loads the seed. It is the secret itself, so it is handled here and never goes
  * through the parser */
 static int scan_seed(void) {
-    struct quirc *q;
     char status[UI_COLS + 1], mnemonic[256];
     uint8_t seed[64];
-    /* The payload is the seed. Too large for the stack, so it is static and wiped at the end */
-    static struct quirc_code code;
-    static struct quirc_data data;
     int ok = 0;
 
     if (!camera_ready) return message("No camera", "Wire it up or use the test seed.", 1), 0;
-    if (!(q = quirc_new()) || quirc_resize(q, CAMERA_W, CAMERA_H) < 0) return message("Out of memory", NULL, 1), 0;
+    if (!qr_reader_open()) return message("Out of memory", NULL, 1), 0;
     snprintf(status, sizeof(status), "Scan SeedQR");
 
     while (!ok) {
-        uint8_t *img = quirc_begin(q, NULL, NULL);
+        int32_t read;
         if (buttons_poll() >= 0) break;
-        if (!camera_capture(img, 500)) continue;
-        show_preview(img, status);
-        quirc_end(q);
-        for (int i = 0; i < quirc_count(q) && !ok; i++) {
-            quirc_extract(q, i, &code);
-            if (quirc_decode(&code, &data)) {
-                snprintf(status, sizeof(status), "QR found, cannot read");
-                continue;
-            }
-            if (!seedqr_decode(data.payload, (size_t)data.payload_len, mnemonic, sizeof(mnemonic))) {
+        if (!camera_capture(qr_reader_frame(), 500)) continue;
+        show_preview(qr_reader_frame(), status);
+        read = qr_reader_read(QR_READER_SEEDQR);
+        if (read == QR_READER_UNREADABLE) {
+            snprintf(status, sizeof(status), "QR found, cannot read");
+        } else if (read == QR_READER_WRONG_KIND) {
+            snprintf(status, sizeof(status), "Not a valid SeedQR");
+        } else if (read > 0) {
+            if (!seedqr_decode(qr_reader_output(), (size_t)read, mnemonic, sizeof(mnemonic))) {
                 snprintf(status, sizeof(status), "Not a valid SeedQR");
                 continue;
             }
@@ -331,11 +326,8 @@ static int scan_seed(void) {
             ok = core_load_seed(seed);
         }
     }
-    /* The captured frame still holds the SeedQR, readable over SWD, so it is wiped before release */
-    wipe(quirc_begin(q, NULL, NULL), (size_t)CAMERA_W * CAMERA_H);
-    quirc_destroy(q);
-    wipe(&code, sizeof(code));
-    wipe(&data, sizeof(data));
+    /* The captured frame still holds the SeedQR, readable over SWD */
+    qr_reader_close();
     wipe(mnemonic, sizeof(mnemonic));
     wipe(seed, sizeof(seed));
     if (ok) {
@@ -505,6 +497,7 @@ static void main_menu(void) {
 
 int main(void) {
     stdio_init_all();
+    qr_reader_on_panic = core_unload;
 #if !NO_LCD
     st7789_init();
 #endif

@@ -1,7 +1,3 @@
 [submodule "parts"]
 	path = components/parts
 	url = https://github.com/habakan/bitwasm-signer.git
-[submodule "qr/quirc"]
-	path = components/qr/quirc
-	url = https://github.com/habakan/quirc.git
-	branch = mcu

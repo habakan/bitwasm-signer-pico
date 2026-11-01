@@ -66,7 +66,7 @@ Not reviewed by a third party. signet only. See [Disclaimer](../README.md#discla
 - A PSBT whose previous transactions are large may not fit. For a single-signature SegWit input,
   omitting `non_witness_utxo` when `witness_utxo` is present can reduce its size; a faucet
   transaction with 2,323 outputs made a PSBT of 77KB, which is 770 QR frames.
-- The device's quirc decoder needs the code to fill most of the frame and cannot read a display from
+- The device's QR reader needs the code to fill most of the frame and cannot read a display from
   across a room.
 - A QR decoder is not a trust boundary. Whatever it produces is parsed and re-validated.
 

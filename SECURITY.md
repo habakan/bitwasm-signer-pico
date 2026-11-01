@@ -29,10 +29,9 @@ reproduce, generate a throwaway one and say so.
 
 ## Scope
 
-This policy covers this repository and our quirc fork
-([`mcu` branch](https://github.com/habakan/quirc)), which the firmware uses to read QR codes.
+This policy covers this repository.
 
-Problems in `parser.wasm`, `signer.wasm`, their host libraries or the browser viewer belong to
+Problems in `parser.wasm`, `signer.wasm`, the QR reader, their host libraries or the browser viewer belong to
 [bitwasm-signer](https://github.com/habakan/bitwasm-signer/security/policy). If you are not sure which one is
 affected, report it here.
 

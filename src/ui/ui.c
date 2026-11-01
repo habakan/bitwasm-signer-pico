@@ -457,6 +457,8 @@ void ui_render_line(const ui_screen_t *s, int y, uint16_t line[UI_W]) {
     if (summary || output || approval) draw_review_actions(line, y, s, approval);
 }
 
+static const char hold[] = "Hold a key to cancel";
+
 void ui_render_scan_line(const uint8_t *img, int camera_w, int camera_h, const char *status, int y,
                          uint16_t line[UI_W]) {
     int source_w = camera_h * UI_W / UI_H;
@@ -484,6 +486,9 @@ void ui_render_scan_line(const uint8_t *img, int camera_w, int camera_h, const c
     fill_rect_line(line, y, 0, 214, UI_W, 1, C_BORDER);
     draw_dot(line, y, 10, 227, 3, C_TITLE);
     draw_small(line, y, 21, 222, status ? status : "Waiting for a valid QR", C_TEXT);
+    /* A key is only looked at between frames, so a short press can be missed */
+    fill_rect_line(line, y, 0, 0, UI_W, 20, C_PANEL);
+    draw_small(line, y, (UI_W - (int)sizeof(hold) * FONT_W) / 2, 5, hold, C_HINT);
 }
 
 static uint8_t qr[qrcodegen_BUFFER_LEN_FOR_VERSION(UI_QR_MAX_VERSION)];

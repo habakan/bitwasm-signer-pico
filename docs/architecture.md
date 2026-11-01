@@ -10,7 +10,7 @@ The firmware stack at a glance:
 ## 1. The trust boundary
 
 UR and PSBT data are parsed inside a WASM module that holds no keys. Camera frames are decoded by
-native quirc, which remains in the trusted computing base. The keys and signing stay native, and the
+the native QR reader, written in Rust, which remains in the trusted computing base. The keys and signing stay native, and the
 parser and signer communicate through a fixed-length record.
 
 ```mermaid
@@ -34,15 +34,15 @@ flowchart TB
 
         subgraph drivers["peripherals (native)"]
             cam["camera<br/>PIO + DMA"]
-            quirc["quirc<br/>QR decoding"]
+            reader["QR reader (Rust)<br/>QR decoding"]
             lcd["ST7789 panel"]
             btn["buttons"]
         end
     end
 
-    qr --> cam --> quirc
-    quirc -->|"the QR's string"| boundary
-    quirc -->|"SeedQR"| seedqr
+    qr --> cam --> reader
+    reader -->|"the QR's string"| boundary
+    reader -->|"SeedQR"| seedqr
     seedqr -->|"64-byte seed"| core
     boundary <--> parser
     boundary <-->|"Plan / signatures"| core
@@ -70,7 +70,7 @@ What the boundary is actually enforcing:
 ```mermaid
 sequenceDiagram
     participant W as the wallet on a PC
-    participant C as camera + quirc
+    participant C as camera + QR reader
     participant P as parser.wasm
     participant K as signing core
     participant L as panel + buttons
@@ -97,17 +97,17 @@ sequenceDiagram
 flowchart LR
     subgraph ram["RAM, 520KB"]
         pool["WAMR pool, 160KB<br/>parser.wasm's linear memory and UR reassembly"]
-        heap["shared heap, 92KB<br/>quirc while reading, then the PSBT buffers"]
+        heap["shared heap, 108KB<br/>the QR reader while reading, then the PSBT buffers"]
         stack["stack, 32KB"]
-        other["UI, qrcodegen, core, secp256k1, pico-sdk: 58KB"]
+        other["UI, qrcodegen, core, secp256k1, pico-sdk: 30KB"]
         wasmcopy["parser.wasm's copy in RAM, 16KB"]
-        free["free, 162KB"]
+        free["free, 174KB"]
     end
 ```
 
-- **quirc (90KB) and the PSBT buffers (66KB) use the same heap one after the other.** Once reading is
-  done quirc is not needed, and before parsing the PSBT buffers are not needed. Measured on the
-  hardware, the peak stays at 93,696 B; without sharing it would be 159,232 B
+- **The QR reader (106KB) and the PSBT buffers (68KB) use the same heap one after the other.** Once
+  reading is done the reader is not needed, and before parsing the PSBT buffers are not needed.
+  Measured on the hardware, the heap peaks at 107,872 B; without sharing it would be about 173KB
 - AOT makes `parser.wasm` faster but has to be expanded into RAM — executing in place measured seven
   times slower — which pushes the pool to 277KB and no longer leaves room for the camera. With the
   parser this light, a full round only changes by 8%, so **the interpreter stays**
@@ -118,7 +118,8 @@ flowchart LR
 |---|---|---|
 | SeedQR to seed (PBKDF2, 2048 rounds) | native | 0.47s |
 | capturing one QR frame | PIO + DMA | 120ms |
-| decoding the QR | quirc | 62ms, or 300ms when it finds one |
+| decoding the QR, nothing in view | QR reader | about 90ms |
+| decoding the QR, when it reads one | QR reader | 240ms on the camera, 290-430ms from a standing start |
 | parsing the PSBT | **parser.wasm** | 25ms |
 | checking it and building the display | native | 147ms |
 | signing (two inputs, ECDSA + Schnorr) | native | 126ms |

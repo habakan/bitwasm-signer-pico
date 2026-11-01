@@ -15,10 +15,6 @@ SECP_DEFS := -DENABLE_MODULE_EXTRAKEYS=1 -DENABLE_MODULE_SCHNORRSIG=1 -DENABLE_M
 LIME1 := mutable-globals,multivalue,sign-ext,nontrapping-fptoint,bulk-memory-opt,extended-const,call-indirect-overlong
 LIME_FLAGS := -mcpu=lime1 -Xlinker --features=$(LIME1)
 
-# Default to the fixed-point fork on the mcu submodule branch.
-# To compare with upstream, pass QUIRC=third_party/quirc/lib QUIRC_DEFS=.
-QUIRC       ?= components/qr/quirc/lib
-QUIRC_DEFS  ?= -DQUIRC_FIXED_POINT_FITNESS -DQUIRC_FLOAT_TYPE=float -DQUIRC_USE_TGMATH
 QRGEN       := third_party/QR-Code-generator/c
 
 # tx.c and sha256.c are shared with the bitwasm-signer submodule.
